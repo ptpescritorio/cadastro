@@ -603,17 +603,29 @@ document.getElementById('form').addEventListener('submit', async function(e){
   btn.disabled=true;
   btn.innerHTML='<span class="spinner"></span>Enviando…';
 
-  // Envia sem aguardar resposta (no-cors não permite leitura)
-  fetch(APPS_SCRIPT_URL,{
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(dados)
-  }).catch(()=>{}); // ignora erro de rede silenciosamente
-
-  // Mostra sucesso imediatamente
-  document.getElementById('form').style.display='none';
-  document.getElementById('tela-ok').style.display='block';
-  window.scrollTo({top:0,behavior:'smooth'});
+  const ctrl    = new AbortController();
+  const timeout = setTimeout(()=>ctrl.abort(), 20000);
+  try{
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(dados),
+      signal:ctrl.signal
+    });
+    clearTimeout(timeout);
+    document.getElementById('form').style.display='none';
+    document.getElementById('tela-ok').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(err){
+    clearTimeout(timeout);
+    btn.disabled=false;
+    btn.innerHTML='Enviar Cadastro';
+    if(err.name==='AbortError'){
+      toast('Tempo esgotado. Verifique a conexão e tente novamente.','err');
+    } else {
+      toast('Erro ao enviar. Verifique a conexão.','err');
+    }
+  }
 });
 </script>
 </body>
