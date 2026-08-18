@@ -408,7 +408,7 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
 'use strict';
 
 // ── URL do Apps Script — cole aqui após publicar ──────────────────
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRNxlbdAqD-p2fp-2KOUxaHNU5RZRcmQ4HC9_Bjp1L3kckpzYIFIZHWcdBuYDWVIbmGQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyx6UGSEb21fJE0rrDudDbHNi92qfVG2L-gCg3nlb4nzD99HdOBYmyw7NA3yUIOKhWdQw/exec";
 
 // ── TOAST ─────────────────────────────────────────────────────────
 let _toastTimer;
@@ -603,20 +603,17 @@ document.getElementById('form').addEventListener('submit', async function(e){
   btn.disabled=true;
   btn.innerHTML='<span class="spinner"></span>Enviando…';
 
-  try{
-    await fetch(APPS_SCRIPT_URL,{
-      method:'POST', mode:'no-cors',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(dados)
-    });
-    document.getElementById('form').style.display='none';
-    document.getElementById('tela-ok').style.display='block';
-    window.scrollTo({top:0,behavior:'smooth'});
-  }catch{
-    btn.disabled=false;
-    btn.innerHTML='Enviar Cadastro';
-    toast('Erro ao enviar. Verifique a conexão.','err');
-  }
+  // Envia sem aguardar resposta (no-cors não permite leitura)
+  fetch(APPS_SCRIPT_URL,{
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(dados)
+  }).catch(()=>{}); // ignora erro de rede silenciosamente
+
+  // Mostra sucesso imediatamente
+  document.getElementById('form').style.display='none';
+  document.getElementById('tela-ok').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
 });
 </script>
 </body>
