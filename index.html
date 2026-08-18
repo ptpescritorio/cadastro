@@ -46,19 +46,24 @@ body{
 /* ─── HEADER ────────────────────────────────────────────────── */
 #header{
   background:var(--header);
-  padding:0 20px;
-  display:flex;align-items:center;gap:14px;
-  height:54px;flex-shrink:0;
+  padding:18px 20px 14px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
   border-bottom:1px solid var(--border);
   box-shadow:0 2px 12px rgba(0,0,0,.5);
-  position:sticky;top:0;z-index:100;
 }
+#header .logo-wrap{display:flex;align-items:center;gap:14px}
+#header .logo-wrap svg{flex-shrink:0}
+#header .logo-text{display:flex;flex-direction:column}
 #header .titulo{
-  font-size:14px;font-weight:700;
-  letter-spacing:.3px;color:var(--text);flex:1;
+  font-size:17px;font-weight:700;letter-spacing:.5px;
+  color:#fff;line-height:1.2;
+}
+#header .empresa{
+  font-size:11px;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;color:#90ce78;
 }
 #header .subtitulo{
-  font-size:12px;color:var(--text-muted);
+  font-size:12px;color:var(--text-muted);margin-top:2px;
 }
 
 /* ─── CONTAINER ─────────────────────────────────────────────── */
@@ -188,10 +193,12 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
 
 <!-- HEADER -->
 <div id="header">
-  <div>
-    <div class="titulo">Cadastro de Proprietário</div>
-    <div class="subtitulo">Preencha os dados abaixo e envie</div>
+  <div class="logo-wrap">
+    <img src="https://raw.githubusercontent.com/ptpescritorio/cadastro/main/POLIGONAL_LOGO_HORIZONTAL_600DPI_2.png"
+         alt="Poligonal"
+         style="height:48px;width:auto;">
   </div>
+  <div class="subtitulo">Cadastro de Proprietário — Preencha os dados abaixo e envie</div>
 </div>
 
 <div class="container">
@@ -401,7 +408,7 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
 'use strict';
 
 // ── URL do Apps Script — cole aqui após publicar ──────────────────
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRNxlbdAqD-p2fp-2KOUxaHNU5RZRcmQ4HC9_Bjp1L3kckpzYIFIZHWcdBuYDWVIbmGQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyx6UGSEb21fJE0rrDudDbHNi92qfVG2L-gCg3nlb4nzD99HdOBYmyw7NA3yUIOKhWdQw/exec";
 
 // ── TOAST ─────────────────────────────────────────────────────────
 let _toastTimer;
