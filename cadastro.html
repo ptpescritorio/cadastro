@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadastro de Proprietário — PTP</title>
+<style>
+/* ─── VARIÁVEIS — TEMA ESCURO ────────────────────────────────── */
+:root{
+  --bg:        #0d1117;
+  --surface:   #161b27;
+  --surface-2: #1e2638;
+  --surface-3: #111622;
+  --border:    #2a3448;
+  --border-2:  #1e2a3a;
+  --text:      #c9d4e3;
+  --text-muted:#6a7d96;
+  --text-dim:  #3d506a;
+  --accent:    #4a8ff5;
+  --accent-dk: #3378e0;
+  --ok:        #1e8449;
+  --ok-dk:     #145a32;
+  --danger:    #e05252;
+  --focus:     rgba(74,143,245,.22);
+  --header:    #0b1320;
+  --radius:    6px;
+}
+
+/* ─── RESET & BASE ──────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,'Segoe UI',Arial,sans-serif;
+  font-size:14px;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding-bottom:40px;
+}
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar-track{background:var(--surface-3)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#3a4f6a}
+
+/* ─── HEADER ────────────────────────────────────────────────── */
+#header{
+  background:var(--header);
+  padding:0 20px;
+  display:flex;align-items:center;gap:14px;
+  height:54px;flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.5);
+  position:sticky;top:0;z-index:100;
+}
+#header .titulo{
+  font-size:14px;font-weight:700;
+  letter-spacing:.3px;color:var(--text);flex:1;
+}
+#header .subtitulo{
+  font-size:12px;color:var(--text-muted);
+}
+
+/* ─── CONTAINER ─────────────────────────────────────────────── */
+.container{max-width:720px;margin:20px auto;padding:0 14px;display:flex;flex-direction:column;gap:10px}
+
+/* ─── SEÇÃO ──────────────────────────────────────────────────── */
+.sec{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.sec-title{
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.7px;
+  color:var(--text-muted);
+  background:var(--surface-3);
+  padding:5px 12px;
+  border-bottom:1px solid var(--border);
+}
+.sec-body{padding:10px 12px;display:grid;gap:8px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.span2{grid-column:span 2}
+.span3{grid-column:span 3}
+@media(max-width:520px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .span2,.span3{grid-column:span 1}
+}
+
+/* ─── CAMPO ──────────────────────────────────────────────────── */
+.fld{display:flex;flex-direction:column;gap:2px}
+.fld label{
+  font-size:12px;font-weight:500;
+  color:var(--text-muted);
+}
+.fld label .obrig{color:var(--danger);margin-left:2px}
+.fld input,.fld select{
+  padding:5px 8px;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  font-size:14px;font-family:inherit;
+  color:var(--text);outline:none;
+  transition:.15s border-color,.15s box-shadow;
+  -webkit-appearance:none;appearance:none;
+}
+.fld input::placeholder{color:var(--text-dim)}
+.fld select option{background:var(--surface-2);color:var(--text)}
+.fld input:focus,.fld select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px var(--focus);
+}
+.fld input.err{border-color:var(--danger);box-shadow:0 0 0 2px rgba(224,82,82,.22)}
+.fld input.ok {border-color:#2e8b57}
+.msg-err{font-size:12px;color:var(--danger);display:none;margin-top:1px}
+
+/* ─── CEP ROW ────────────────────────────────────────────────── */
+.cep-row{display:flex;gap:6px;align-items:flex-end}
+.cep-row input{flex:1}
+.btn-cep{
+  padding:5px 10px;
+  background:var(--surface-2);color:var(--text-muted);
+  border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13px;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:.15s all;font-family:inherit;
+}
+.btn-cep:hover{background:var(--surface-3);color:var(--text);border-color:var(--accent)}
+.btn-cep:disabled{opacity:.4;cursor:default}
+
+/* ─── BLOCO CÔNJUGE ─────────────────────────────────────────── */
+#bloco-conj{display:none}
+
+/* ─── BOTÃO ENVIAR ───────────────────────────────────────────── */
+.btn-enviar{
+  width:100%;padding:11px;
+  background:var(--ok);color:#fff;
+  border:none;border-radius:var(--radius);
+  font-size:14px;font-weight:700;font-family:inherit;
+  cursor:pointer;letter-spacing:.3px;
+  transition:.15s background;
+}
+.btn-enviar:hover{background:var(--ok-dk)}
+.btn-enviar:disabled{opacity:.4;cursor:default}
+
+/* ─── SUCESSO ────────────────────────────────────────────────── */
+#tela-ok{
+  display:none;text-align:center;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:40px 20px;
+}
+#tela-ok .ico{font-size:2.5rem}
+#tela-ok h2{margin:12px 0 8px;color:#5cb87a;font-size:16px}
+#tela-ok p{color:var(--text-muted);font-size:14px;line-height:1.6}
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:16px;right:16px;
+  padding:9px 14px;border-radius:var(--radius);
+  font-size:13px;color:#fff;z-index:9999;
+  pointer-events:none;opacity:0;
+  transition:.25s opacity;box-shadow:0 4px 16px rgba(0,0,0,.5);
+  max-width:280px;
+}
+#toast.show{opacity:1}
+.t-ok {background:#0d4f33}
+.t-err{background:#5c1a1a}
+.t-inf{background:var(--surface-2);border:1px solid var(--border)}
+
+/* ─── SPINNER ────────────────────────────────────────────────── */
+.spinner{
+  display:inline-block;width:13px;height:13px;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .6s linear infinite;
+  vertical-align:middle;margin-right:5px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── RODAPÉ ─────────────────────────────────────────────────── */
+footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <div class="titulo">Cadastro de Proprietário</div>
+    <div class="subtitulo">Preencha os dados abaixo e envie</div>
+  </div>
+</div>
+
+<div class="container">
+<form id="form" novalidate>
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="sec">
+    <div class="sec-title">Identificação</div>
+    <div class="sec-body g3">
+      <div class="fld span2">
+        <label>Nome completo <span class="obrig">*</span></label>
+        <input id="NOME" type="text" placeholder="Como consta no documento" autocomplete="name">
+        <div class="msg-err" id="e-NOME">Informe o nome completo.</div>
+      </div>
+      <div class="fld">
+        <label>CPF <span class="obrig">*</span></label>
+        <input id="CPFCNPJ" type="text" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+        <div class="msg-err" id="e-CPFCNPJ">CPF inválido.</div>
+      </div>
+      <div class="fld">
+        <label>Sexo <span class="obrig">*</span></label>
+        <select id="SEXO">
+          <option value="">— Selecione —</option>
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+        </select>
+        <div class="msg-err" id="e-SEXO">Selecione o sexo.</div>
+      </div>
+      <div class="fld">
+        <label>Data de nascimento <span class="obrig">*</span></label>
+        <input id="DATANASC" type="text" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric">
+        <div class="msg-err" id="e-DATANASC">Data inválida.</div>
+      </div>
+      <div class="fld">
+        <label>RG</label>
+        <input id="RG" type="text" placeholder="Número do RG">
+      </div>
+      <div class="fld">
+        <label>CNH</label>
+        <input id="CNH" type="text" placeholder="Número da CNH">
+      </div>
+      <div class="fld">
+        <label>Nacionalidade</label>
+        <input id="NACION" type="text" placeholder="Brasileira / Brasileiro" value="Brasileira">
+      </div>
+      <div class="fld">
+        <label>Profissão</label>
+        <input id="PROF" type="text" placeholder="Ex: Engenheiro">
+      </div>
+    </div>
+  </div>
+
+  <!-- FILIAÇÃO -->
+  <div class="sec">
+    <div class="sec-title">Filiação</div>
+    <div class="sec-body g2">
+      <div class="fld">
+        <label>Nome do pai</label>
+        <input id="FILPAI" type="text" placeholder="Nome completo">
+      </div>
+      <div class="fld">
+        <label>Nome da mãe</label>
+        <input id="FILMAE" type="text" placeholder="Nome completo">
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTADO CIVIL -->
+  <div class="sec">
+    <div class="sec-title">Estado Civil</div>
+    <div class="sec-body g2">
+      <div class="fld">
+        <label>Estado civil <span class="obrig">*</span></label>
+        <select id="ESTCIVIL" onchange="toggleConj()">
+          <option value="">— Selecione —</option>
+          <option>Solteiro</option><option>Solteira</option>
+          <option>Casado</option><option>Casada</option>
+          <option>Divorciado</option><option>Divorciada</option>
+          <option>Viúvo</option><option>Viúva</option>
+          <option>União Estável</option>
+          <option>Separado Judicialmente</option><option>Separada Judicialmente</option>
+        </select>
+        <div class="msg-err" id="e-ESTCIVIL">Selecione o estado civil.</div>
+      </div>
+      <div class="fld" id="bloco-reg">
+        <label>Regime de casamento</label>
+        <select id="REGCASAM">
+          <option value="">— Selecione —</option>
+          <option>Comunhão parcial de bens</option>
+          <option>Comunhão universal de bens</option>
+          <option>Separação total de bens</option>
+          <option>Participação final nos aquestos</option>
+        </select>
+      </div>
+      <div class="fld span2" id="bloco-conj">
+        <div class="g2" style="display:grid;gap:8px">
+          <div class="fld">
+            <label>Nome do cônjuge</label>
+            <input id="CONJNOME" type="text" placeholder="Nome completo">
+          </div>
+          <div class="fld">
+            <label>CPF do cônjuge</label>
+            <input id="CONJCPF" type="text" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTATO -->
+  <div class="sec">
+    <div class="sec-title">Contato</div>
+    <div class="sec-body g2">
+      <div class="fld">
+        <label>Telefone / WhatsApp <span class="obrig">*</span></label>
+        <input id="TEL" type="text" placeholder="(00) 00000-0000" inputmode="numeric" maxlength="15">
+        <div class="msg-err" id="e-TEL">Informe o telefone.</div>
+      </div>
+      <div class="fld">
+        <label>Telefone 2</label>
+        <input id="TEL2" type="text" placeholder="(00) 00000-0000" inputmode="numeric" maxlength="15">
+      </div>
+      <div class="fld span2">
+        <label>E-mail</label>
+        <input id="EMAIL" type="email" placeholder="exemplo@email.com" inputmode="email" autocomplete="email">
+        <div class="msg-err" id="e-EMAIL">E-mail inválido.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENDEREÇO -->
+  <div class="sec">
+    <div class="sec-title">Endereço</div>
+    <div class="sec-body g3">
+      <div class="fld">
+        <label>CEP <span class="obrig">*</span></label>
+        <div class="cep-row">
+          <input id="ENDCEP" type="text" placeholder="00000-000" inputmode="numeric" maxlength="9">
+          <button type="button" class="btn-cep" id="btn-cep" onclick="buscarCEP()">🔍 CEP</button>
+        </div>
+        <div class="msg-err" id="e-ENDCEP">CEP inválido.</div>
+      </div>
+      <div class="fld">
+        <label>Tipo de logradouro</label>
+        <input id="ENDLOGTIPO" type="text" placeholder="Rua, Av, Al…">
+      </div>
+      <div class="fld span2">
+        <label>Nome do logradouro <span class="obrig">*</span></label>
+        <input id="ENDLOGNOME" type="text" placeholder="Nome da rua ou avenida">
+        <div class="msg-err" id="e-ENDLOGNOME">Informe o logradouro.</div>
+      </div>
+      <div class="fld">
+        <label>Número <span class="obrig">*</span></label>
+        <input id="ENDLOGNUM" type="text" placeholder="S/N" inputmode="numeric">
+        <div class="msg-err" id="e-ENDLOGNUM">Informe o número.</div>
+      </div>
+      <div class="fld span2">
+        <label>Complemento</label>
+        <input id="ENDLOGCOMP" type="text" placeholder="Apto, Bloco, Sala…">
+      </div>
+      <div class="fld">
+        <label>Bairro <span class="obrig">*</span></label>
+        <input id="ENDLOCALNOME" type="text" placeholder="Nome do bairro">
+        <div class="msg-err" id="e-ENDLOCALNOME">Informe o bairro.</div>
+      </div>
+      <div class="fld">
+        <label>Município <span class="obrig">*</span></label>
+        <input id="ENDMUN" type="text" placeholder="Cidade">
+        <div class="msg-err" id="e-ENDMUN">Informe o município.</div>
+      </div>
+      <div class="fld">
+        <label>UF <span class="obrig">*</span></label>
+        <select id="ENDUF">
+          <option value="">UF</option>
+          <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+          <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+          <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+          <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+          <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+          <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+          <option>SP</option><option>SE</option><option>TO</option>
+        </select>
+        <div class="msg-err" id="e-ENDUF">Selecione a UF.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÃO -->
+  <button type="submit" class="btn-enviar" id="btn-enviar">Enviar Cadastro</button>
+
+</form>
+
+<!-- TELA DE SUCESSO -->
+<div id="tela-ok">
+  <div class="ico">✅</div>
+  <h2>Cadastro enviado com sucesso!</h2>
+  <p>Seus dados foram recebidos.<br>Obrigado pelo cadastro.</p>
+</div>
+
+<footer>PTP Escritório &nbsp;·&nbsp; ptpescritorio@gmail.com</footer>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+// ── URL do Apps Script — cole aqui após publicar ──────────────────
+const APPS_SCRIPT_URL = https://script.google.com/macros/s/AKfycbyx6UGSEb21fJE0rrDudDbHNi92qfVG2L-gCg3nlb4nzD99HdOBYmyw7NA3yUIOKhWdQw/exec;
+
+// ── TOAST ─────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, tipo='inf'){
+  const el=document.getElementById('toast');
+  el.className='show t-'+tipo;
+  el.textContent=msg;
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'), 3500);
+}
+
+// ── MÁSCARAS ──────────────────────────────────────────────────────
+function soDig(s){return(s||'').replace(/\D/g,'')}
+
+function mascaraCPF(d){
+  d=soDig(d).substring(0,11);
+  if(d.length>9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
+  if(d.length>6) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
+  if(d.length>3) return d.slice(0,3)+'.'+d.slice(3);
+  return d;
+}
+function mascaraTel(d){
+  d=soDig(d).substring(0,11);
+  if(d.length>10) return'('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7);
+  if(d.length>6)  return'('+d.slice(0,2)+') '+d.slice(2,6)+'-'+d.slice(6);
+  if(d.length>2)  return'('+d.slice(0,2)+') '+d.slice(2);
+  return d;
+}
+function mascaraData(d){
+  d=soDig(d).substring(0,8);
+  if(d.length>4) return d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4);
+  if(d.length>2) return d.slice(0,2)+'/'+d.slice(2);
+  return d;
+}
+function mascaraCEP(d){
+  d=soDig(d).substring(0,8);
+  if(d.length>5) return d.slice(0,5)+'-'+d.slice(5);
+  return d;
+}
+
+document.getElementById('CPFCNPJ').addEventListener('input',function(){this.value=mascaraCPF(this.value)});
+document.getElementById('CONJCPF').addEventListener('input',function(){this.value=mascaraCPF(this.value)});
+document.getElementById('TEL').addEventListener('input',function(){this.value=mascaraTel(this.value)});
+document.getElementById('TEL2').addEventListener('input',function(){this.value=mascaraTel(this.value)});
+document.getElementById('DATANASC').addEventListener('input',function(){this.value=mascaraData(this.value)});
+document.getElementById('ENDCEP').addEventListener('input',function(){this.value=mascaraCEP(this.value)});
+document.getElementById('ENDCEP').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();buscarCEP();}
+});
+
+// ── VALIDAÇÃO CPF ─────────────────────────────────────────────────
+function validarCPF(cpf){
+  const d=soDig(cpf);
+  if(d.length!==11||/^(\d)\1+$/.test(d)) return false;
+  let s=0;
+  for(let i=0;i<9;i++) s+=+d[i]*(10-i);
+  let r=(s*10)%11; if(r===10||r===11) r=0;
+  if(r!==+d[9]) return false;
+  s=0;
+  for(let i=0;i<10;i++) s+=+d[i]*(11-i);
+  r=(s*10)%11; if(r===10||r===11) r=0;
+  return r===+d[10];
+}
+
+document.getElementById('CPFCNPJ').addEventListener('blur',function(){
+  const ok=validarCPF(this.value);
+  this.classList.toggle('ok', ok && this.value!=='');
+  this.classList.toggle('err', !ok && this.value!=='');
+  document.getElementById('e-CPFCNPJ').style.display=(!ok&&this.value!=='')?'block':'none';
+});
+
+// ── ESTADO CIVIL CONDICIONAL ──────────────────────────────────────
+function toggleConj(){
+  const v=document.getElementById('ESTCIVIL').value.toLowerCase();
+  const show=v.includes('casad')||v.includes('uni');
+  document.getElementById('bloco-conj').style.display=show?'block':'none';
+  document.getElementById('bloco-reg').style.display=show?'flex':'none';
+}
+// inicia oculto
+document.getElementById('bloco-reg').style.display='none';
+
+// ── BUSCA CEP ─────────────────────────────────────────────────────
+async function buscarCEP(){
+  const cep=soDig(document.getElementById('ENDCEP').value);
+  if(cep.length!==8){toast('Digite um CEP com 8 dígitos.','err');return;}
+  const btn=document.getElementById('btn-cep');
+  btn.disabled=true; btn.textContent='Buscando…';
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const j=await r.json();
+    if(j.erro){toast('CEP não encontrado.','err');return;}
+    // separa tipo do logradouro
+    let logtipo='',lognome=j.logradouro||'';
+    if(lognome.includes(' ')){
+      const p=lognome.split(' ');
+      logtipo=p[0]; lognome=p.slice(1).join(' ');
+    }
+    document.getElementById('ENDLOGTIPO').value=logtipo;
+    document.getElementById('ENDLOGNOME').value=lognome;
+    document.getElementById('ENDLOCALNOME').value=j.bairro||'';
+    document.getElementById('ENDMUN').value=j.localidade||'';
+    document.getElementById('ENDUF').value=j.uf||'';
+    document.getElementById('ENDLOGNUM').focus();
+    toast('Endereço preenchido!','ok');
+  }catch{
+    toast('Erro ao buscar CEP. Verifique a conexão.','err');
+  }finally{
+    btn.disabled=false; btn.textContent='🔍 CEP';
+  }
+}
+
+// ── VALIDAÇÃO ─────────────────────────────────────────────────────
+function chk(id, cond){
+  const el=document.getElementById(id);
+  const er=document.getElementById('e-'+id);
+  const ok=el?cond(el.value):false;
+  if(el){el.classList.toggle('err',!ok);el.classList.toggle('ok',ok);}
+  if(er) er.style.display=ok?'none':'block';
+  return ok;
+}
+
+// ── ENVIO ─────────────────────────────────────────────────────────
+document.getElementById('form').addEventListener('submit', async function(e){
+  e.preventDefault();
+
+  let ok=true;
+  ok=chk('NOME',    v=>v.trim().length>2)          && ok;
+  ok=chk('CPFCNPJ', v=>validarCPF(v))              && ok;
+  ok=chk('SEXO',    v=>v!=='')                     && ok;
+  ok=chk('DATANASC',v=>soDig(v).length===8)        && ok;
+  ok=chk('ESTCIVIL',v=>v!=='')                     && ok;
+  ok=chk('TEL',     v=>soDig(v).length>=10)        && ok;
+  ok=chk('ENDCEP',  v=>soDig(v).length===8)        && ok;
+  ok=chk('ENDLOGNOME',  v=>v.trim().length>0)      && ok;
+  ok=chk('ENDLOGNUM',   v=>v.trim().length>0)      && ok;
+  ok=chk('ENDLOCALNOME',v=>v.trim().length>0)      && ok;
+  ok=chk('ENDMUN',  v=>v.trim().length>0)          && ok;
+  ok=chk('ENDUF',   v=>v!=='')                     && ok;
+
+  const emailEl=document.getElementById('EMAIL');
+  if(emailEl.value.trim()!==''){
+    const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim());
+    if(!emailOk){
+      emailEl.classList.add('err');
+      document.getElementById('e-EMAIL').style.display='block';
+      ok=false;
+    }
+  }
+
+  if(!ok){
+    window.scrollTo({top:0,behavior:'smooth'});
+    toast('Corrija os campos destacados.','err');
+    return;
+  }
+
+  const gv=id=>{const el=document.getElementById(id);return el?el.value.trim():''};
+
+  const dados={
+    TIPO:'PF',
+    NOME:        gv('NOME'),
+    CPFCNPJ:     gv('CPFCNPJ'),
+    SEXO:        gv('SEXO'),
+    DATANASC:    gv('DATANASC'),
+    RG:          gv('RG'),
+    CNH:         gv('CNH'),
+    NACION:      gv('NACION'),
+    PROF:        gv('PROF'),
+    FILPAI:      gv('FILPAI'),
+    FILMAE:      gv('FILMAE'),
+    ESTCIVIL:    gv('ESTCIVIL'),
+    REGCASAM:    gv('REGCASAM'),
+    CONJNOME:    gv('CONJNOME'),
+    CONJCPF:     gv('CONJCPF'),
+    TEL:         gv('TEL'),
+    TEL2:        gv('TEL2'),
+    EMAIL:       gv('EMAIL').toLowerCase(),
+    ENDCEP:      gv('ENDCEP'),
+    ENDLOGTIPO:  gv('ENDLOGTIPO'),
+    ENDLOGNOME:  gv('ENDLOGNOME'),
+    ENDLOGNUM:   gv('ENDLOGNUM'),
+    ENDLOGCOMP:  gv('ENDLOGCOMP'),
+    ENDLOCALTIPO:'bairro',
+    ENDLOCALNOME:gv('ENDLOCALNOME'),
+    ENDMUN:      gv('ENDMUN'),
+    ENDUF:       gv('ENDUF'),
+  };
+
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Enviando…';
+
+  try{
+    await fetch(APPS_SCRIPT_URL,{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(dados)
+    });
+    document.getElementById('form').style.display='none';
+    document.getElementById('tela-ok').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch{
+    btn.disabled=false;
+    btn.innerHTML='Enviar Cadastro';
+    toast('Erro ao enviar. Verifique a conexão.','err');
+  }
+});
+</script>
+</body>
+</html>
