@@ -401,7 +401,7 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
 'use strict';
 
 // ── URL do Apps Script — cole aqui após publicar ──────────────────
-const APPS_SCRIPT_URL = https://script.google.com/macros/s/AKfycbyx6UGSEb21fJE0rrDudDbHNi92qfVG2L-gCg3nlb4nzD99HdOBYmyw7NA3yUIOKhWdQw/exec;
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyx6UGSEb21fJE0rrDudDbHNi92qfVG2L-gCg3nlb4nzD99HdOBYmyw7NA3yUIOKhWdQw/exec";
 
 // ── TOAST ─────────────────────────────────────────────────────────
 let _toastTimer;
@@ -448,6 +448,9 @@ document.getElementById('TEL').addEventListener('input',function(){this.value=ma
 document.getElementById('TEL2').addEventListener('input',function(){this.value=mascaraTel(this.value)});
 document.getElementById('DATANASC').addEventListener('input',function(){this.value=mascaraData(this.value)});
 document.getElementById('ENDCEP').addEventListener('input',function(){this.value=mascaraCEP(this.value)});
+document.getElementById('ENDCEP').addEventListener('paste',function(){
+  setTimeout(()=>{ this.value=mascaraCEP(this.value); },0);
+});
 document.getElementById('ENDCEP').addEventListener('keydown',function(e){
   if(e.key==='Enter'){e.preventDefault();buscarCEP();}
 });
