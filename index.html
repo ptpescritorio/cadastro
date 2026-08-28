@@ -25,7 +25,6 @@
   --header:    #0b1320;
   --radius:    6px;
 }
-
 /* ─── RESET & BASE ──────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -36,13 +35,11 @@ body{
   min-height:100vh;
   padding-bottom:40px;
 }
-
 /* ─── SCROLLBAR ──────────────────────────────────────────────── */
 ::-webkit-scrollbar{width:7px}
 ::-webkit-scrollbar-track{background:var(--surface-3)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#3a4f6a}
-
 /* ─── HEADER ────────────────────────────────────────────────── */
 #header{
   background:var(--header);
@@ -65,10 +62,8 @@ body{
 #header .subtitulo{
   font-size:12px;color:var(--text-muted);margin-top:2px;
 }
-
 /* ─── CONTAINER ─────────────────────────────────────────────── */
 .container{max-width:720px;margin:20px auto;padding:0 14px;display:flex;flex-direction:column;gap:10px}
-
 /* ─── SEÇÃO ──────────────────────────────────────────────────── */
 .sec{
   background:var(--surface);
@@ -94,7 +89,6 @@ body{
   .g2,.g3,.g4{grid-template-columns:1fr}
   .span2,.span3{grid-column:span 1}
 }
-
 /* ─── CAMPO ──────────────────────────────────────────────────── */
 .fld{display:flex;flex-direction:column;gap:2px}
 .fld label{
@@ -121,7 +115,6 @@ body{
 .fld input.err{border-color:var(--danger);box-shadow:0 0 0 2px rgba(224,82,82,.22)}
 .fld input.ok {border-color:#2e8b57}
 .msg-err{font-size:12px;color:var(--danger);display:none;margin-top:1px}
-
 /* ─── CEP ROW ────────────────────────────────────────────────── */
 .cep-row{display:flex;gap:6px;align-items:flex-end}
 .cep-row input{flex:1}
@@ -134,10 +127,8 @@ body{
 }
 .btn-cep:hover{background:var(--surface-3);color:var(--text);border-color:var(--accent)}
 .btn-cep:disabled{opacity:.4;cursor:default}
-
 /* ─── BLOCO CÔNJUGE ─────────────────────────────────────────── */
 #bloco-conj{display:none}
-
 /* ─── BOTÃO ENVIAR ───────────────────────────────────────────── */
 .btn-enviar{
   width:100%;padding:11px;
@@ -149,7 +140,6 @@ body{
 }
 .btn-enviar:hover{background:var(--ok-dk)}
 .btn-enviar:disabled{opacity:.4;cursor:default}
-
 /* ─── SUCESSO ────────────────────────────────────────────────── */
 #tela-ok{
   display:none;text-align:center;
@@ -160,7 +150,6 @@ body{
 #tela-ok .ico{font-size:2.5rem}
 #tela-ok h2{margin:12px 0 8px;color:#5cb87a;font-size:16px}
 #tela-ok p{color:var(--text-muted);font-size:14px;line-height:1.6}
-
 /* ─── TOAST ──────────────────────────────────────────────────── */
 #toast{
   position:fixed;bottom:16px;right:16px;
@@ -174,7 +163,6 @@ body{
 .t-ok {background:#0d4f33}
 .t-err{background:#5c1a1a}
 .t-inf{background:var(--surface-2);border:1px solid var(--border)}
-
 /* ─── SPINNER ────────────────────────────────────────────────── */
 .spinner{
   display:inline-block;width:13px;height:13px;
@@ -184,13 +172,11 @@ body{
   vertical-align:middle;margin-right:5px;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
-
 /* ─── RODAPÉ ─────────────────────────────────────────────────── */
 footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
 </style>
 </head>
 <body>
-
 <!-- HEADER -->
 <div id="header">
   <div class="logo-wrap">
@@ -200,10 +186,8 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
   </div>
   <div class="subtitulo">Cadastro de Proprietário — Preencha os dados abaixo e envie</div>
 </div>
-
 <div class="container">
 <form id="form" novalidate>
-
   <!-- IDENTIFICAÇÃO -->
   <div class="sec">
     <div class="sec-title">Identificação</div>
@@ -250,7 +234,6 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
       </div>
     </div>
   </div>
-
   <!-- FILIAÇÃO -->
   <div class="sec">
     <div class="sec-title">Filiação</div>
@@ -265,7 +248,6 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
       </div>
     </div>
   </div>
-
   <!-- ESTADO CIVIL -->
   <div class="sec">
     <div class="sec-title">Estado Civil</div>
@@ -297,17 +279,16 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
         <div class="g2" style="display:grid;gap:8px">
           <div class="fld">
             <label>Nome do cônjuge</label>
-            <input id="CONJNOME" type="text" placeholder="Nome completo">
+            <input id="CONJxNOME" type="text" placeholder="Nome completo">
           </div>
           <div class="fld">
             <label>CPF do cônjuge</label>
-            <input id="CONJCPF" type="text" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+            <input id="CONJxCPF" type="text" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
           </div>
         </div>
       </div>
     </div>
   </div>
-
   <!-- CONTATO -->
   <div class="sec">
     <div class="sec-title">Contato</div>
@@ -328,7 +309,6 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
       </div>
     </div>
   </div>
-
   <!-- ENDEREÇO -->
   <div class="sec">
     <div class="sec-title">Endereço</div>
@@ -336,42 +316,42 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
       <div class="fld">
         <label>CEP <span class="obrig">*</span></label>
         <div class="cep-row">
-          <input id="ENDCEP" type="text" placeholder="00000-000" inputmode="numeric" maxlength="9">
+          <input id="ENDxCEP" type="text" placeholder="00000-000" inputmode="numeric" maxlength="9">
           <button type="button" class="btn-cep" id="btn-cep" onclick="buscarCEP()">🔍 CEP</button>
         </div>
-        <div class="msg-err" id="e-ENDCEP">CEP inválido.</div>
+        <div class="msg-err" id="e-ENDxCEP">CEP inválido.</div>
       </div>
       <div class="fld">
         <label>Tipo de logradouro</label>
-        <input id="ENDLOGTIPO" type="text" placeholder="Rua, Av, Al…">
+        <input id="ENDxLOGxTIPO" type="text" placeholder="Rua, Av, Al…">
       </div>
       <div class="fld span2">
         <label>Nome do logradouro <span class="obrig">*</span></label>
-        <input id="ENDLOGNOME" type="text" placeholder="Nome da rua ou avenida">
-        <div class="msg-err" id="e-ENDLOGNOME">Informe o logradouro.</div>
+        <input id="ENDxLOGxNOME" type="text" placeholder="Nome da rua ou avenida">
+        <div class="msg-err" id="e-ENDxLOGxNOME">Informe o logradouro.</div>
       </div>
       <div class="fld">
         <label>Número <span class="obrig">*</span></label>
-        <input id="ENDLOGNUM" type="text" placeholder="S/N" inputmode="numeric">
-        <div class="msg-err" id="e-ENDLOGNUM">Informe o número.</div>
+        <input id="ENDxLOGxNUM" type="text" placeholder="S/N" inputmode="numeric">
+        <div class="msg-err" id="e-ENDxLOGxNUM">Informe o número.</div>
       </div>
       <div class="fld span2">
         <label>Complemento</label>
-        <input id="ENDLOGCOMP" type="text" placeholder="Apto, Bloco, Sala…">
+        <input id="ENDxLOGxCOMP" type="text" placeholder="Apto, Bloco, Sala…">
       </div>
       <div class="fld">
         <label>Bairro <span class="obrig">*</span></label>
-        <input id="ENDLOCALNOME" type="text" placeholder="Nome do bairro">
-        <div class="msg-err" id="e-ENDLOCALNOME">Informe o bairro.</div>
+        <input id="ENDxLOCALxNOME" type="text" placeholder="Nome do bairro">
+        <div class="msg-err" id="e-ENDxLOCALxNOME">Informe o bairro.</div>
       </div>
       <div class="fld">
         <label>Município <span class="obrig">*</span></label>
-        <input id="ENDMUN" type="text" placeholder="Cidade">
-        <div class="msg-err" id="e-ENDMUN">Informe o município.</div>
+        <input id="ENDxMUN" type="text" placeholder="Cidade">
+        <div class="msg-err" id="e-ENDxMUN">Informe o município.</div>
       </div>
       <div class="fld">
         <label>UF <span class="obrig">*</span></label>
-        <select id="ENDUF">
+        <select id="ENDxUF">
           <option value="">UF</option>
           <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
           <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
@@ -381,35 +361,27 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px}
           <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
           <option>SP</option><option>SE</option><option>TO</option>
         </select>
-        <div class="msg-err" id="e-ENDUF">Selecione a UF.</div>
+        <div class="msg-err" id="e-ENDxUF">Selecione a UF.</div>
       </div>
     </div>
   </div>
-
   <!-- BOTÃO -->
   <button type="submit" class="btn-enviar" id="btn-enviar">Enviar Cadastro</button>
-
 </form>
-
 <!-- TELA DE SUCESSO -->
 <div id="tela-ok">
   <div class="ico">✅</div>
   <h2>Cadastro enviado com sucesso!</h2>
   <p>Seus dados foram recebidos.<br>Obrigado pelo cadastro.</p>
 </div>
-
 <footer>PTP Escritório &nbsp;·&nbsp; ptpescritorio@gmail.com</footer>
 </div>
-
 <!-- TOAST -->
 <div id="toast"></div>
-
 <script>
 'use strict';
-
 // ── URL do Apps Script — cole aqui após publicar ──────────────────
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRNxlbdAqD-p2fp-2KOUxaHNU5RZRcmQ4HC9_Bjp1L3kckpzYIFIZHWcdBuYDWVIbmGQ/exec";
-
 // ── TOAST ─────────────────────────────────────────────────────────
 let _toastTimer;
 function toast(msg, tipo='inf'){
@@ -419,10 +391,8 @@ function toast(msg, tipo='inf'){
   clearTimeout(_toastTimer);
   _toastTimer=setTimeout(()=>el.classList.remove('show'), 3500);
 }
-
 // ── MÁSCARAS ──────────────────────────────────────────────────────
 function soDig(s){return(s||'').replace(/\D/g,'')}
-
 function mascaraCPF(d){
   d=soDig(d).substring(0,11);
   if(d.length>9) return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
@@ -448,20 +418,18 @@ function mascaraCEP(d){
   if(d.length>5) return d.slice(0,5)+'-'+d.slice(5);
   return d;
 }
-
 document.getElementById('CPFCNPJ').addEventListener('input',function(){this.value=mascaraCPF(this.value)});
-document.getElementById('CONJCPF').addEventListener('input',function(){this.value=mascaraCPF(this.value)});
+document.getElementById('CONJxCPF').addEventListener('input',function(){this.value=mascaraCPF(this.value)});
 document.getElementById('TEL').addEventListener('input',function(){this.value=mascaraTel(this.value)});
 document.getElementById('TEL2').addEventListener('input',function(){this.value=mascaraTel(this.value)});
 document.getElementById('DATANASC').addEventListener('input',function(){this.value=mascaraData(this.value)});
-document.getElementById('ENDCEP').addEventListener('input',function(){this.value=mascaraCEP(this.value)});
-document.getElementById('ENDCEP').addEventListener('paste',function(){
+document.getElementById('ENDxCEP').addEventListener('input',function(){this.value=mascaraCEP(this.value)});
+document.getElementById('ENDxCEP').addEventListener('paste',function(){
   setTimeout(()=>{ this.value=mascaraCEP(this.value); },0);
 });
-document.getElementById('ENDCEP').addEventListener('keydown',function(e){
+document.getElementById('ENDxCEP').addEventListener('keydown',function(e){
   if(e.key==='Enter'){e.preventDefault();buscarCEP();}
 });
-
 // ── VALIDAÇÃO CPF ─────────────────────────────────────────────────
 function validarCPF(cpf){
   const d=soDig(cpf);
@@ -475,14 +443,12 @@ function validarCPF(cpf){
   r=(s*10)%11; if(r===10||r===11) r=0;
   return r===+d[10];
 }
-
 document.getElementById('CPFCNPJ').addEventListener('blur',function(){
   const ok=validarCPF(this.value);
   this.classList.toggle('ok', ok && this.value!=='');
   this.classList.toggle('err', !ok && this.value!=='');
   document.getElementById('e-CPFCNPJ').style.display=(!ok&&this.value!=='')?'block':'none';
 });
-
 // ── ESTADO CIVIL CONDICIONAL ──────────────────────────────────────
 function toggleConj(){
   const v=document.getElementById('ESTCIVIL').value.toLowerCase();
@@ -492,10 +458,9 @@ function toggleConj(){
 }
 // inicia oculto
 document.getElementById('bloco-reg').style.display='none';
-
 // ── BUSCA CEP ─────────────────────────────────────────────────────
 async function buscarCEP(){
-  const cep=soDig(document.getElementById('ENDCEP').value);
+  const cep=soDig(document.getElementById('ENDxCEP').value);
   if(cep.length!==8){toast('Digite um CEP com 8 dígitos.','err');return;}
   const btn=document.getElementById('btn-cep');
   btn.disabled=true; btn.textContent='Buscando…';
@@ -509,12 +474,12 @@ async function buscarCEP(){
       const p=lognome.split(' ');
       logtipo=p[0]; lognome=p.slice(1).join(' ');
     }
-    document.getElementById('ENDLOGTIPO').value=logtipo;
-    document.getElementById('ENDLOGNOME').value=lognome;
-    document.getElementById('ENDLOCALNOME').value=j.bairro||'';
-    document.getElementById('ENDMUN').value=j.localidade||'';
-    document.getElementById('ENDUF').value=j.uf||'';
-    document.getElementById('ENDLOGNUM').focus();
+    document.getElementById('ENDxLOGxTIPO').value=logtipo;
+    document.getElementById('ENDxLOGxNOME').value=lognome;
+    document.getElementById('ENDxLOCALxNOME').value=j.bairro||'';
+    document.getElementById('ENDxMUN').value=j.localidade||'';
+    document.getElementById('ENDxUF').value=j.uf||'';
+    document.getElementById('ENDxLOGxNUM').focus();
     toast('Endereço preenchido!','ok');
   }catch{
     toast('Erro ao buscar CEP. Verifique a conexão.','err');
@@ -522,7 +487,6 @@ async function buscarCEP(){
     btn.disabled=false; btn.textContent='🔍 CEP';
   }
 }
-
 // ── VALIDAÇÃO ─────────────────────────────────────────────────────
 function chk(id, cond){
   const el=document.getElementById(id);
@@ -532,25 +496,22 @@ function chk(id, cond){
   if(er) er.style.display=ok?'none':'block';
   return ok;
 }
-
 // ── ENVIO ─────────────────────────────────────────────────────────
 document.getElementById('form').addEventListener('submit', async function(e){
   e.preventDefault();
-
   let ok=true;
-  ok=chk('NOME',    v=>v.trim().length>2)          && ok;
-  ok=chk('CPFCNPJ', v=>validarCPF(v))              && ok;
-  ok=chk('SEXO',    v=>v!=='')                     && ok;
-  ok=chk('DATANASC',v=>soDig(v).length===8)        && ok;
-  ok=chk('ESTCIVIL',v=>v!=='')                     && ok;
-  ok=chk('TEL',     v=>soDig(v).length>=10)        && ok;
-  ok=chk('ENDCEP',  v=>soDig(v).length===8)        && ok;
-  ok=chk('ENDLOGNOME',  v=>v.trim().length>0)      && ok;
-  ok=chk('ENDLOGNUM',   v=>v.trim().length>0)      && ok;
-  ok=chk('ENDLOCALNOME',v=>v.trim().length>0)      && ok;
-  ok=chk('ENDMUN',  v=>v.trim().length>0)          && ok;
-  ok=chk('ENDUF',   v=>v!=='')                     && ok;
-
+  ok=chk('NOME',         v=>v.trim().length>2)     && ok;
+  ok=chk('CPFCNPJ',      v=>validarCPF(v))         && ok;
+  ok=chk('SEXO',         v=>v!=='')                && ok;
+  ok=chk('DATANASC',     v=>soDig(v).length===8)   && ok;
+  ok=chk('ESTCIVIL',     v=>v!=='')                && ok;
+  ok=chk('TEL',          v=>soDig(v).length>=10)   && ok;
+  ok=chk('ENDxCEP',      v=>soDig(v).length===8)   && ok;
+  ok=chk('ENDxLOGxNOME', v=>v.trim().length>0)     && ok;
+  ok=chk('ENDxLOGxNUM',  v=>v.trim().length>0)     && ok;
+  ok=chk('ENDxLOCALxNOME',v=>v.trim().length>0)    && ok;
+  ok=chk('ENDxMUN',      v=>v.trim().length>0)     && ok;
+  ok=chk('ENDxUF',       v=>v!=='')                && ok;
   const emailEl=document.getElementById('EMAIL');
   if(emailEl.value.trim()!==''){
     const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim());
@@ -560,49 +521,56 @@ document.getElementById('form').addEventListener('submit', async function(e){
       ok=false;
     }
   }
-
   if(!ok){
     window.scrollTo({top:0,behavior:'smooth'});
     toast('Corrija os campos destacados.','err');
     return;
   }
-
   const gv=id=>{const el=document.getElementById(id);return el?el.value.trim():''};
 
-  const dados={
-    TIPO:'PF',
-    NOME:        gv('NOME'),
-    CPFCNPJ:     gv('CPFCNPJ'),
-    SEXO:        gv('SEXO'),
-    DATANASC:    gv('DATANASC'),
-    RG:          gv('RG'),
-    CNH:         gv('CNH'),
-    NACION:      gv('NACION'),
-    PROF:        gv('PROF'),
-    FILPAI:      gv('FILPAI'),
-    FILMAE:      gv('FILMAE'),
-    ESTCIVIL:    gv('ESTCIVIL'),
-    REGCASAM:    gv('REGCASAM'),
-    CONJNOME:    gv('CONJNOME'),
-    CONJCPF:     gv('CONJCPF'),
-    TEL:         gv('TEL'),
-    TEL2:        gv('TEL2'),
-    EMAIL:       gv('EMAIL').toLowerCase(),
-    ENDCEP:      gv('ENDCEP'),
-    ENDLOGTIPO:  gv('ENDLOGTIPO'),
-    ENDLOGNOME:  gv('ENDLOGNOME'),
-    ENDLOGNUM:   gv('ENDLOGNUM'),
-    ENDLOGCOMP:  gv('ENDLOGCOMP'),
-    ENDLOCALTIPO:'bairro',
-    ENDLOCALNOME:gv('ENDLOCALNOME'),
-    ENDMUN:      gv('ENDMUN'),
-    ENDUF:       gv('ENDUF'),
-  };
+  // TEL2: se preenchido, concatena ao TEL com " / "
+  const tel1 = gv('TEL');
+  const tel2 = gv('TEL2');
+  const telFinal = tel2 ? tel1 + ' / ' + tel2 : tel1;
 
+  // ENDxMUN-UF: campo derivado
+  const munuf = gv('ENDxMUN') && gv('ENDxUF')
+    ? gv('ENDxMUN') + '-' + gv('ENDxUF')
+    : '';
+
+  const dados={
+    TIPO:            'PF',
+    NOME:            gv('NOME'),
+    NOMEFANTASIA:    '',
+    CPFCNPJ:         gv('CPFCNPJ'),
+    SEXO:            gv('SEXO'),
+    DATANASC:        gv('DATANASC'),
+    RG:              gv('RG'),
+    CNH:             gv('CNH'),
+    NACION:          gv('NACION'),
+    PROF:            gv('PROF'),
+    FILPAI:          gv('FILPAI'),
+    FILMAE:          gv('FILMAE'),
+    ESTCIVIL:        gv('ESTCIVIL'),
+    REGCASAM:        gv('REGCASAM'),
+    'CONJxNOME':     gv('CONJxNOME'),
+    'CONJxCPF':      gv('CONJxCPF'),
+    TEL:             telFinal,
+    EMAIL:           gv('EMAIL').toLowerCase(),
+    'ENDxCEP':       gv('ENDxCEP'),
+    'ENDxLOGxTIPO':  gv('ENDxLOGxTIPO'),
+    'ENDxLOGxNOME':  gv('ENDxLOGxNOME'),
+    'ENDxLOGxNUM':   gv('ENDxLOGxNUM'),
+    'ENDxLOGxCOMP':  gv('ENDxLOGxCOMP'),
+    'ENDxLOCALxTIPO':'bairro',
+    'ENDxLOCALxNOME':gv('ENDxLOCALxNOME'),
+    'ENDxMUN':       gv('ENDxMUN'),
+    'ENDxUF':        gv('ENDxUF'),
+    'ENDxMUN-UF':    munuf,
+  };
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true;
   btn.innerHTML='<span class="spinner"></span>Enviando…';
-
   const ctrl    = new AbortController();
   const timeout = setTimeout(()=>ctrl.abort(), 20000);
   try{
