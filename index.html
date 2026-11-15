@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cadastro de Proprietário — Poligonal</title>
+<meta name="theme-color" content="#0b1320">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 /* ─── TEMA ESCURO ─────────────────────────────────────────────── */
 :root{
@@ -140,8 +145,8 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
         <input id="NACION" type="text" placeholder="brasileiro(a)">
       </div>
       <div class="fld">
-        <label for="NATURALIDADE">Naturalidade</label>
-        <input id="NATURALIDADE" type="text" placeholder="Cidade/UF">
+        <label for="NATURALIDADExMUN">Naturalidade</label>
+        <div style="display:flex;gap:6px"><input id="NATURALIDADExMUN" type="text" placeholder="Cidade onde nasceu" style="flex:1"><select id="NATURALIDADExUF" class="sel-uf" aria-label="UF da naturalidade" style="width:72px;flex-shrink:0"></select></div>
       </div>
       <div class="fld span2">
         <label for="PROF">Profissão</label>
@@ -274,8 +279,8 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
         <input id="C_NACION" type="text" placeholder="brasileiro(a)">
       </div>
       <div class="fld">
-        <label for="C_NATURALIDADE">Naturalidade</label>
-        <input id="C_NATURALIDADE" type="text" placeholder="Cidade/UF">
+        <label for="C_NATURALIDADExMUN">Naturalidade</label>
+        <div style="display:flex;gap:6px"><input id="C_NATURALIDADExMUN" type="text" placeholder="Cidade onde nasceu" style="flex:1"><select id="C_NATURALIDADExUF" class="sel-uf" aria-label="UF da naturalidade do cônjuge" style="width:72px;flex-shrink:0"></select></div>
       </div>
       <div class="fld">
         <label for="C_PROF">Profissão</label>
@@ -526,6 +531,8 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
    ════════════════════════════════════════════════════════════════ */
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8cDFGxlVZb5BQtI7F-R9lr774AXYQdngLycSrKAplVfZYAT48wIfP1pP7uuB78rIN/exec";
 const TOKEN = "ptp-cadprop-2026";
+/* Link do trabalho de campo (?t=CÓDIGO, gerado pelo CAMPOTRAB) ou ?campo: abre o modo campo (campo.js) */
+const MODO_CAMPO = /[?&](t|campo)(=|&|$)/.test(location.search);
 
 const UFS=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 const TIPOS_LOG=['Rua','Avenida','Travessa','Alameda','Rodovia','Estrada','Praça','Largo','Viela','Vila','Ladeira','Beco',
@@ -592,7 +599,7 @@ function titleCasePT(s){
     return l.replace(/(^|[-'’])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
   }).join(' ');
 }
-['NOME','FILPAI','FILMAE','CONJxNOME','C_FILPAI','C_FILMAE','R_NOME','PJ_NOME','ENDxLOGxNOME','ENDxMUN','ENDxLOCALxNOME','NATURALIDADE','C_NATURALIDADE','CERTxCARTORIO']
+['NOME','FILPAI','FILMAE','CONJxNOME','C_FILPAI','C_FILMAE','R_NOME','PJ_NOME','ENDxLOGxNOME','ENDxMUN','ENDxLOCALxNOME','NATURALIDADExMUN','C_NATURALIDADExMUN','CERTxCARTORIO']
  .forEach(id=>$(id).addEventListener('blur',function(){ if(this.value.trim()) this.value=titleCasePT(this.value); }));
 
 /* ── VALIDAÇÕES ────────────────────────────────────────────────── */
@@ -732,7 +739,7 @@ function montarPessoas(){
   }
   const sexo=gv('SEXO'), cod=gv('ESTCIVIL');
   const titular=limpar(Object.assign({ TIPO:'PF', CPFCNPJ:gv('CPFCNPJ'), NOME:gv('NOME'), SEXO:sexo, DATANASC:gv('DATANASC'),
-    NATURALIDADE:gv('NATURALIDADE'), NACION:gv('NACION').toLowerCase(), ESTCIVIL:estCivilFinal(cod,sexo),
+    NATURALIDADExMUN:gv('NATURALIDADExMUN'), NATURALIDADExUF:gv('NATURALIDADExUF'), NACION:gv('NACION').toLowerCase(), ESTCIVIL:estCivilFinal(cod,sexo),
     REGCASAM:gv('REGCASAM'), PROF:gv('PROF').toLowerCase(),
     RG:gv('RG'), RGxORGAO:gv('RGxORGAO').toUpperCase(), RGxUF:gv('RGxUF'), RGxDATAEXP:gv('RGxDATAEXP'),
     CNH:soDig(gv('CNH'))||gv('CNH'), CNHxORGAO:gv('CNHxORGAO').toUpperCase(), CNHxUF:gv('CNHxUF'), CNHxDATAEXP:gv('CNHxDATAEXP'),
@@ -740,10 +747,10 @@ function montarPessoas(){
     CERTxCARTORIO:gv('CERTxCARTORIO'), CERTxMAT:gv('CERTxMAT'), CERTxLIVRO:gv('CERTxLIVRO'), CERTxFOLHA:gv('CERTxFOLHA'), CERTxDATA:gv('CERTxDATA'),
     TEL:gv('TEL'), TEL2:gv('TEL2'), EMAIL:gv('EMAIL').toLowerCase(), OBS:gv('OBS') }, end));
   const pessoas=[titular];
-  if($('cad-conj').checked && validarCPF(gv('CONJxCPF'))){
+  if($('cad-conj').checked && (MODO_CAMPO ? gv('CONJxNOME').length>1 : validarCPF(gv('CONJxCPF')))){
     const sexoC=sexo==='masculino'?'feminino':sexo==='feminino'?'masculino':'';
     pessoas.push(limpar(Object.assign({ TIPO:'PF', CPFCNPJ:gv('CONJxCPF'), NOME:gv('CONJxNOME'), SEXO:sexoC,
-      DATANASC:gv('C_DATANASC'), NATURALIDADE:gv('C_NATURALIDADE'), NACION:gv('C_NACION').toLowerCase(),
+      DATANASC:gv('C_DATANASC'), NATURALIDADExMUN:gv('C_NATURALIDADExMUN'), NATURALIDADExUF:gv('C_NATURALIDADExUF'), NACION:gv('C_NACION').toLowerCase(),
       ESTCIVIL:estCivilFinal(cod,sexoC), REGCASAM:gv('REGCASAM'), PROF:gv('C_PROF').toLowerCase(),
       RG:gv('C_RG'), RGxORGAO:gv('C_RGxORGAO').toUpperCase(), RGxUF:gv('C_RGxUF'), RGxDATAEXP:gv('C_RGxDATAEXP'),
       FILPAI:gv('C_FILPAI'), FILMAE:gv('C_FILMAE'), CONJxNOME:gv('NOME'), CONJxCPF:gv('CPFCNPJ'),
@@ -791,18 +798,49 @@ function validar(){
   return ok;
 }
 
+/* modo campo: só o nome é obrigatório; o resto é conferido se estiver preenchido */
+function validarCampo(){
+  let ok=true;
+  const t=(r)=>{ ok=r&&ok; };
+  if(tipoAtual()==='PJ'){
+    t(chk('PJ_NOME',v=>v.length>=2));
+    t(chkOpc('PJ_CNPJ',validarCNPJ));
+    t(chkOpc('R_CPF',validarCPF));
+    t(chkOpc('R_EMAIL',validarEmail));
+  } else {
+    t(chk('NOME',v=>v.length>=2));
+    t(chkOpc('CPFCNPJ',validarCPF));
+    t(chkOpc('DATANASC',v=>validarData(v)));
+    t(chkOpc('RGxDATAEXP',v=>validarData(v)));
+    t(chkOpc('CNHxDATAEXP',v=>validarData(v)));
+    t(chkOpc('CERTxDATA',v=>validarData(v)));
+    t(chkOpc('CONJxCPF',v=>validarCPF(v) && soDig(v)!==soDig(gv('CPFCNPJ'))));
+    if($('cad-conj').checked){
+      t(chk('CONJxNOME',v=>v.length>=2));
+      t(chkOpc('C_DATANASC',v=>validarData(v)));
+      t(chkOpc('C_RGxDATAEXP',v=>validarData(v)));
+      t(chkOpc('C_EMAIL',validarEmail));
+    }
+  }
+  t(chkOpc('TEL',v=>soDig(v).length>=10));
+  t(chkOpc('EMAIL',validarEmail));
+  t(chkOpc('ENDxCEP',v=>soDig(v).length===8));
+  return ok;
+}
+
 /* ── ENVIO ─────────────────────────────────────────────────────── */
 $('form').addEventListener('submit',async e=>{
   e.preventDefault();
   /* campos escondidos não podem segurar o envio */
   document.querySelectorAll('[hidden] .err').forEach(el=>marcar(el.id,true));
-  if(!validar()){
+  if(!(MODO_CAMPO?validarCampo():validar())){
     const prim=[...document.querySelectorAll('.err, .msg-err[style*="block"]')]
       .map(x=>x.classList.contains('msg-err')?$(x.id.slice(2)):x).find(x=>x && x.offsetParent!==null);
     if(prim){ prim.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>prim.focus({preventScroll:true}),350); }
     toast('Confira os campos destacados.','err');
     return;
   }
+  if(MODO_CAMPO){ window.Campo.salvarFicha(); return; }
   const corpo={
     formato:'PTP_CADPROP_FORMULARIO', versao:1, token:TOKEN, site:gv('site'),
     enviado_em:new Date().toISOString(),
@@ -831,6 +869,15 @@ $('form').addEventListener('submit',async e=>{
 function novoEnvio(){ $('form').reset(); _nacionEditada=false; trocarTipo(); aoMudarEstCivil(); $('tela-ok').hidden=true; $('form').hidden=false; window.scrollTo({top:0}); }
 
 trocarTipo(); aoMudarEstCivil();
+
+/* ── MODO CAMPO: carrega o mapa (Leaflet, cópia local) e o campo.js ── */
+if(MODO_CAMPO){
+  const css=document.createElement('link'); css.rel='stylesheet'; css.href='lib/leaflet.css'; document.head.appendChild(css);
+  const carregar=src=>new Promise(ok=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=ok; document.body.appendChild(s); });
+  carregar('lib/leaflet.js').then(()=>carregar('campo.js')).then(()=>{
+    if(window.Campo) window.Campo.iniciar(); else toast('Não consegui carregar o modo campo (campo.js).','err');
+  });
+}
 </script>
 </body>
 </html>
