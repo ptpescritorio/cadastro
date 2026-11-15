@@ -107,6 +107,9 @@ body.campo .obrig{display:none} body.campo .obrig.cp-sim{display:inline}
 .cp-voltar b{color:#fff}
 .cp-rot{background:rgba(13,17,23,.75);border:none;box-shadow:none;color:#fff;font-size:11px;font-weight:600;padding:1px 4px}
 .cp-rot:before{display:none}
+.cp-rot.cp-estudo{z-index:1000;background:#ff9f1a;color:#1b1203;text-align:center;line-height:1.25;padding:2px 6px;border-radius:3px;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.cp-rot.cp-estudo b{font-size:11px;letter-spacing:.4px;display:block}
+.cp-rot.cp-estudo span{font-weight:500;font-size:10.5px}
 .cp-vert{background:#fff;border:2px solid #e05252;border-radius:50%}
 .cp-pino svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .cp-pino-rot{background:rgba(13,17,23,.8);border:none;box-shadow:none;color:#ffd27a;font-size:11px;font-weight:600;padding:1px 4px}
@@ -195,6 +198,7 @@ function montarTela(){
   </nav>
   <section id="aba-mapa" class="cp-env">
     <div id="cp-mapa-div"></div>
+    <div class="cp-mut" id="cp-mapa-off"></div>
     <div class="cp-barra" id="cp-barra-mapa">
       <button class="cp-btn" id="b-gps">📍 Onde estou</button>
       <button class="cp-btn" id="b-tudo">⛶ Ver tudo</button>
@@ -276,17 +280,50 @@ function geomAtual(l){ return EST.geoms[l.id]||l.feat; }
 function iniciarMapa(){
   if(typeof L==='undefined'){ $('cp-mapa-div').innerHTML='<div class="cp-vazio">Mapa indisponível (arquivo lib/leaflet.js não carregou).</div>'; return; }
   MAPA=L.map('cp-mapa-div',{zoomControl:true,maxZoom:21,tap:true});
-  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:19,maxZoom:21,attribution:'Imagem © Esri'});
-  const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxNativeZoom:19,maxZoom:21,attribution:'© OpenStreetMap'});
+  const sat=L.tileLayer(SAT_URL,{maxNativeZoom:19,maxZoom:21,attribution:'Imagem © Esri'});
+  const osm=L.tileLayer(OSM_URL,{maxNativeZoom:19,maxZoom:21,attribution:'© OpenStreetMap'});
   const nada=L.layerGroup();
-  sat.addTo(MAPA);
+  sat.addTo(MAPA); _fundo={camada:sat, url:SAT_URL};
   L.control.layers({'Satélite':sat,'Ruas':osm,'Sem fundo':nada},null,{position:'topright'}).addTo(MAPA);
+  MAPA.on('baselayerchange',e=>{ _fundo={camada:e.layer, url:e.layer===sat?SAT_URL:e.layer===osm?OSM_URL:''}; medirMapaGuardado(); });
+  MAPA.on('moveend',()=>{ clearTimeout(_tMedir); _tMedir=setTimeout(medirMapaGuardado,1500); });
   CAM_LOTES=L.featureGroup().addTo(MAPA); CAM_ROT=L.layerGroup().addTo(MAPA); CAM_PINOS=L.layerGroup().addTo(MAPA); CAM_PESSOAS=L.layerGroup().addTo(MAPA); CAM_EDICAO=L.layerGroup().addTo(MAPA);
   MAPA.on('click',e=>{ if(_modo&&_modo.tipo==='desenho') addVerticeDesenho(e.latlng); else if(_modo&&_modo.tipo==='pino') criarPino(e.latlng,null); });
   MAPA.on('zoomend',()=>$('cp-mapa-div').classList.toggle('sem-rot',MAPA.getZoom()<17));
-  const st=document.createElement('style'); st.textContent='#cp-mapa-div.sem-rot .cp-rot{display:none}'; document.head.appendChild(st);
-  desenharLotes(); verTudo();
+  const st=document.createElement('style'); st.textContent='#cp-mapa-div.sem-rot .cp-rot:not(.cp-estudo){display:none} #cp-mapa-div.sem-rot .cp-estudo span{display:none}'; document.head.appendChild(st);
+  desenharLotes(); verTudo(); setTimeout(medirMapaGuardado,2500);
 }
+/* ── Mapa guardado para uso sem internet (15/11/2026) ─────────────────────
+   O sw.js guarda cada imagem de fundo que aparece na tela com internet. Aqui só
+   medimos quanto da área do trabalho já está guardado, em dois níveis de zoom. */
+const SAT_URL='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const OSM_URL='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+let _fundo=null, _tMedir=null;
+function urlTile(modelo,z,x,y){ return modelo.replace('{z}',z).replace('{x}',x).replace('{y}',y); }
+function tilesDaArea(z){
+  const b=CAM_LOTES.getBounds(); if(!b.isValid()) return [];
+  const m=b.pad(0.15), n=Math.pow(2,z);
+  const tx=lon=>Math.floor((lon+180)/360*n);
+  const ty=lat=>{ const r=lat*Math.PI/180; return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n); };
+  const x0=tx(m.getWest()), x1=tx(m.getEast()), y0=ty(m.getNorth()), y1=ty(m.getSouth()), r=[];
+  for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) r.push([x,y]);
+  return r;
+}
+async function medirMapaGuardado(){
+  const el=$('cp-mapa-off'); if(!el||!MAPA||!('caches' in window)) return;
+  if(!_fundo||!_fundo.url){ el.textContent=''; return; }
+  try{
+    const c=await caches.open('ptp-mapas-v1');
+    const pct=async z=>{ const t=tilesDaArea(z); if(!t.length||t.length>1500) return null; let n=0;
+      for(const [x,y] of t) if(await c.match(urlTile(_fundo.url,z,x,y))) n++; return Math.round(100*n/t.length); };
+    const a=await pct(17), b=await pct(19);
+    if(a==null&&b==null){ el.textContent=''; return; }
+    const ok=a===100&&b===100;
+    el.innerHTML=`🗺 Fundo guardado para usar sem internet: <b>${a??'—'}%</b> da área de longe · <b>${b??'—'}%</b> bem de perto`+
+      (ok?' ✅':(navigator.onLine?' — com internet, passeie pelo mapa da área aproximando até ver as casas.':''));
+  }catch{ el.textContent=''; }
+}
+
 function estiloLote(l){
   const sel=l.id===_selId, ed=!!EST.geoms[l.id]&&!l.novo;
   const cor=l.papel==='estudo'?'#ff9f1a':l.novo?'#3ddc84':'#4a8ff5';
@@ -301,7 +338,10 @@ function desenharLotes(){
     lay.on('click',ev=>{ if(_modo) return; L.DomEvent.stopPropagation(ev); selecionarLote(l.id); });
     lay.addTo(CAM_LOTES); camadasLote[l.id]=lay;
     /* rótulo: tooltip solto numa camada própria (o permanente preso ao lote ficava duplicado ao redesenhar) */
-    try{ L.tooltip({permanent:true,direction:'center',className:'cp-rot',interactive:false}).setLatLng(lay.getBounds().getCenter()).setContent(esc(l.rotulo)).addTo(CAM_ROT); }catch{}
+    /* 15/11/2026: o imóvel em estudo leva a etiqueta "IMÓVEL EM ESTUDO" (sempre visível, mesmo de longe) */
+    const est=l.papel==='estudo';
+    try{ L.tooltip({permanent:true,direction:'center',className:'cp-rot'+(est?' cp-estudo':''),interactive:false}).setLatLng(lay.getBounds().getCenter())
+      .setContent(est?`<b>IMÓVEL EM ESTUDO</b><span>${esc(l.rotulo)}</span>`:esc(l.rotulo)).addTo(CAM_ROT); }catch{}
   });
   desenharPinos();
   CAM_PESSOAS.clearLayers();
@@ -317,7 +357,7 @@ function selecionarLote(id){
   const pessoas=EST.fichas.filter(f=>f.lote===id);
   const nf=EST.fotos.filter(f=>f.lote===id).length;
   const editado=!!EST.geoms[id]&&!l.novo;
-  painel(`<h3>${esc(l.rotulo)} <span class="cp-mut">${l.papel==='estudo'?'· imóvel em estudo':l.novo?'· desenhado em campo':'· provável confinante'}${editado?' · desenho corrigido':''}</span></h3>
+  painel(`<h3>${esc(l.rotulo)} <span class="cp-mut">${l.papel==='estudo'?'· <b style="color:#ff9f1a">IMÓVEL EM ESTUDO</b>':l.novo?'· desenhado em campo':'· provável confinante'}${editado?' · desenho corrigido':''}</span></h3>
    ${pessoas.length?'<div>'+pessoas.map(f=>`👤 ${esc((f.pessoas[0]||{}).NOME)} <span class="cp-mut">${esc(f.papel||'')}${f.lado?' · '+esc(f.lado):''}</span>`).join('<br>')+'</div>':'<div class="cp-mut">Nenhuma pessoa ligada a este lote ainda.</div>'}
    ${nf?`<div class="cp-mut">📷 ${nf} foto(s) deste lote</div>`:''}
    <div class="cp-barra">
@@ -579,7 +619,7 @@ function prepararFormulario(){
   document.querySelector('.aviso').innerHTML='Preencha o que a pessoa souber informar. Só o <b>nome</b> é obrigatório; CPF, se informado, é conferido.';
 }
 function mostrarLocalFicha(){ $('V_LOCAL').textContent=_localFicha?`${_localFicha.lat.toFixed(6)}, ${_localFicha.lon.toFixed(6)} `+(_localFicha.origem==='pino'?'(local do ponto ◉)':`(±${Math.round(_localFicha.prec)} m)`):'sem local marcado'; }
-function opcoesLotes(sel){ return '<option value="">— nenhum —</option>'+lotesTodos().map(l=>`<option value="${esc(l.id)}"${l.id===sel?' selected':''}>${esc(l.rotulo)}${l.papel==='estudo'?' (em estudo)':''}</option>`).join(''); }
+function opcoesLotes(sel){ return '<option value="">— nenhum —</option>'+lotesTodos().map(l=>`<option value="${esc(l.id)}"${l.id===sel?' selected':''}>${esc(l.rotulo)}${l.papel==='estudo'?' — IMÓVEL EM ESTUDO':''}</option>`).join(''); }
 
 function lerCampos(){
   const v={}, c={};
