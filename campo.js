@@ -108,8 +108,7 @@ body.campo .obrig{display:none} body.campo .obrig.cp-sim{display:inline}
 .cp-rot{background:rgba(13,17,23,.75);border:none;box-shadow:none;color:#fff;font-size:11px;font-weight:600;padding:1px 4px}
 .cp-rot:before{display:none}
 .cp-vert{background:#fff;border:2px solid #e05252;border-radius:50%}
-.cp-pino{font-size:30px;line-height:30px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8))}
-.cp-pino.sel{font-size:38px;line-height:38px}
+.cp-pino svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .cp-pino-rot{background:rgba(13,17,23,.8);border:none;box-shadow:none;color:#ffd27a;font-size:11px;font-weight:600;padding:1px 4px}
 .cp-pino-rot:before{display:none}
 .cp-meio{background:rgba(255,255,255,.55);border:1px solid #e05252;border-radius:50%}
@@ -199,7 +198,7 @@ function montarTela(){
     <div class="cp-barra" id="cp-barra-mapa">
       <button class="cp-btn" id="b-gps">📍 Onde estou</button>
       <button class="cp-btn" id="b-tudo">⛶ Ver tudo</button>
-      <button class="cp-btn" id="b-pino">📌 Indicar ponto</button>
+      <button class="cp-btn" id="b-pino">◉ Indicar ponto</button>
       <button class="cp-btn" id="b-novo">✏ Desenhar polígono</button>
     </div>
     <div class="cp-painel" id="cp-painel"><div class="cp-mut">Toque num lote para ver, cadastrar pessoas ou corrigir o desenho.</div></div>
@@ -342,7 +341,7 @@ function selecionarLote(id){
 function painel(html){ $('cp-painel').innerHTML=html; }
 
 /* ── Pontos (pinos) — 15/11/2026 ────────────────────────────────────────
-   Um "📌" na casa/terreno onde as informações estão sendo coletadas. Vai em
+   Um "◉" na casa/terreno onde as informações estão sendo coletadas. Vai em
    geometrias.geojson como Point {id:'PT1', origem:'pino', rotulo}; pessoas e fotos
    podem apontar para ele (ficha.pino / foto.pino). */
 function pinosTodos(){ return Object.values(EST.geoms).filter(g=>g.properties&&g.properties.origem==='pino'); }
@@ -354,9 +353,12 @@ function desenharPinos(){
   pinosTodos().forEach(g=>{
     const id=g.properties.id, c=g.geometry.coordinates, sel=id===_pinoSel;
     const n=EST.fichas.filter(f=>f.pino===id).length;
-    const mk=L.marker([c[1],c[0]],{icon:L.divIcon({className:'cp-pino'+(sel?' sel':''),html:'📌',iconSize:sel?[38,38]:[30,30],iconAnchor:sel?[10,36]:[8,28]}),
+    /* círculo (alvo): o CENTRO do círculo é a coordenada (iconAnchor = metade do tamanho) — pedido de 15/11/2026 */
+    const t=sel?34:26, r=t/2;
+    const html=`<svg width="${t}" height="${t}" viewBox="0 0 ${t} ${t}"><circle cx="${r}" cy="${r}" r="${r-2}" fill="${sel?'#ff9f1a':'#00acc1'}" stroke="#fff" stroke-width="3"/><circle cx="${r}" cy="${r}" r="${sel?4.5:3.5}" fill="#fff"/></svg>`;
+    const mk=L.marker([c[1],c[0]],{icon:L.divIcon({className:'cp-pino',html,iconSize:[t,t],iconAnchor:[r,r]}),
       draggable:!!(_modo&&_modo.tipo==='moverpino'&&_modo.id===id),keyboard:false,zIndexOffset:1000});
-    mk.bindTooltip(esc(g.properties.rotulo||id)+(n?' · 👤'+n:''),{permanent:true,direction:'right',offset:[10,-14],className:'cp-pino-rot'});
+    mk.bindTooltip(esc(g.properties.rotulo||id)+(n?' · 👤'+n:''),{permanent:true,direction:'right',offset:[r,0],className:'cp-pino-rot'});
     mk.on('click',ev=>{ L.DomEvent.stopPropagation(ev); if(_modo) return; selecionarPino(id); });
     mk.on('dragend',ev=>{ const ll=ev.target.getLatLng(); g.geometry.coordinates=[+ll.lng.toFixed(7),+ll.lat.toFixed(7)]; g.properties.movido_em=agoraISO();
       EST.fichas.forEach(f=>{ if(f.pino===id && f.local && f.local.origem==='pino') f.local=localDoPino(id); });
@@ -369,7 +371,7 @@ function iniciarPino(){
   if(_modo) return;
   _modo={tipo:'pino'}; _selId=null; _pinoSel=null; desenharLotes();
   $('cp-barra-mapa').hidden=true;
-  painel(`<h3>📌 Indicar ponto</h3>
+  painel(`<h3>◉ Indicar ponto</h3>
    <div class="cp-mut">Toque no mapa sobre a casa ou o terreno. Ou, estando lá, use o GPS.</div>
    <div class="cp-barra">
      <button class="cp-btn" id="pn-gps">📍 Ponto onde estou</button>
@@ -405,7 +407,7 @@ function selecionarPino(id){
   _pinoSel=id; _selId=null; desenharLotes();
   const fichas=EST.fichas.filter(f=>f.pino===id), nf=EST.fotos.filter(f=>f.pino===id).length;
   const c=g.geometry.coordinates;
-  painel(`<h3>📌 ${esc(g.properties.rotulo||id)} <span class="cp-mut">${g.properties.lote?'· no '+esc(rotuloLote(g.properties.lote)):''}</span></h3>
+  painel(`<h3>◉ ${esc(g.properties.rotulo||id)} <span class="cp-mut">${g.properties.lote?'· no '+esc(rotuloLote(g.properties.lote)):''}</span></h3>
    <div class="cp-mut">${c[1].toFixed(6)}, ${c[0].toFixed(6)}${g.properties.gps?' · GPS ±'+Math.round(g.properties.gps.prec)+' m':' · marcado no mapa'}</div>
    ${fichas.length?'<div>'+fichas.map(f=>`👤 ${esc((f.pessoas[0]||{}).NOME)} <span class="cp-mut">${esc(f.papel||'')}</span>`).join('<br>')+'</div>':'<div class="cp-mut">Nenhuma pessoa ligada a este ponto ainda.</div>'}
    ${nf?`<div class="cp-mut">📷 ${nf} foto(s) deste ponto</div>`:''}
@@ -419,7 +421,7 @@ function selecionarPino(id){
   $('pp-pessoa').onclick=()=>abrirFicha(null,{pino:id, lote:g.properties.lote||'', papel:'confinante'});
   $('pp-foto').onchange=e=>receberFotos(e.target,'camera',{pino:id, lote:g.properties.lote||'', tipo:'fachada'});
   $('pp-mover').onclick=()=>{ _modo={tipo:'moverpino',id}; $('cp-barra-mapa').hidden=true; desenharPinos();
-    painel(`<h3>✋ Movendo: ${esc(g.properties.rotulo)}</h3><div class="cp-mut">Arraste o 📌 até o lugar certo.</div>
+    painel(`<h3>✋ Movendo: ${esc(g.properties.rotulo)}</h3><div class="cp-mut">Arraste o ◉ até o lugar certo.</div>
       <div class="cp-barra"><button class="cp-btn" id="pm-gps">📍 Levar para onde estou</button><button class="cp-btn ok" id="pm-ok">✔ Pronto</button></div>`);
     $('pm-gps').onclick=async()=>{ try{ const p=await posicao(); g.geometry.coordinates=[p.lon,p.lat]; g.properties.gps={prec:p.prec,em:p.em};
       EST.fichas.forEach(f=>{ if(f.pino===id && f.local && f.local.origem==='pino') f.local=localDoPino(id); });
@@ -562,7 +564,7 @@ function prepararFormulario(){
      <div class="fld"><label for="V_LOTE">Lote / imóvel</label><select id="V_LOTE"></select></div>
      <div class="fld"><label for="V_PAPEL">Esta pessoa é</label><select id="V_PAPEL">${PAPEIS.map(p=>`<option>${p}</option>`).join('')}</select></div>
      <div class="fld"><label for="V_LADO">Lado (em relação ao imóvel em estudo)</label><select id="V_LADO"><option value="">—</option>${LADOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
-     <div class="fld full" id="f-pino"><label for="V_PINO">📌 Ponto no mapa (casa / terreno)</label><select id="V_PINO"></select></div>
+     <div class="fld full" id="f-pino"><label for="V_PINO">◉ Ponto no mapa (casa / terreno)</label><select id="V_PINO"></select></div>
      <div class="fld full"><div class="cp-barra" style="align-items:center"><button type="button" class="cp-btn" id="V_GPS">📍 Marcar onde estou</button><span class="cp-mut" id="V_LOCAL">sem local marcado</span></div></div>
    </div></div>`);
   $('f-voltar').onclick=()=>{ if(confirm('Sair sem salvar esta pessoa?')) fecharFicha(); };
@@ -576,7 +578,7 @@ function prepararFormulario(){
   $('btn-enviar').textContent='Salvar pessoa';
   document.querySelector('.aviso').innerHTML='Preencha o que a pessoa souber informar. Só o <b>nome</b> é obrigatório; CPF, se informado, é conferido.';
 }
-function mostrarLocalFicha(){ $('V_LOCAL').textContent=_localFicha?`${_localFicha.lat.toFixed(6)}, ${_localFicha.lon.toFixed(6)} `+(_localFicha.origem==='pino'?'(local do ponto 📌)':`(±${Math.round(_localFicha.prec)} m)`):'sem local marcado'; }
+function mostrarLocalFicha(){ $('V_LOCAL').textContent=_localFicha?`${_localFicha.lat.toFixed(6)}, ${_localFicha.lon.toFixed(6)} `+(_localFicha.origem==='pino'?'(local do ponto ◉)':`(±${Math.round(_localFicha.prec)} m)`):'sem local marcado'; }
 function opcoesLotes(sel){ return '<option value="">— nenhum —</option>'+lotesTodos().map(l=>`<option value="${esc(l.id)}"${l.id===sel?' selected':''}>${esc(l.rotulo)}${l.papel==='estudo'?' (em estudo)':''}</option>`).join(''); }
 
 function lerCampos(){
@@ -613,7 +615,7 @@ function abrirFicha(id,pre){
   $('V_PINO').innerHTML='<option value="">— nenhum —</option>'+pinosTodos().map(g=>`<option value="${esc(g.properties.id)}"${g.properties.id===pinoIni?' selected':''}>${esc(g.properties.rotulo)}</option>`).join('');
   $('f-pino').hidden=!pinosTodos().length;
   _localFicha=f?f.local||null:(pre.pino?localDoPino(pre.pino):null); mostrarLocalFicha();
-  $('f-titulo').textContent=f?'Editar: '+((f.pessoas[0]||{}).NOME||''):'Nova pessoa'+(pre.pino?' — 📌 '+rotuloPino(pre.pino):pre.lote?' — '+rotuloLote(pre.lote):'');
+  $('f-titulo').textContent=f?'Editar: '+((f.pessoas[0]||{}).NOME||''):'Nova pessoa'+(pre.pino?' — ◉ '+rotuloPino(pre.pino):pre.lote?' — '+rotuloLote(pre.lote):'');
   $('campo').hidden=true; $('form').hidden=false; window.scrollTo({top:0});
 }
 function fecharFicha(){ $('form').hidden=true; $('campo').hidden=false; _fichaEditando=null; abrirAba('pessoas'); window.scrollTo({top:0}); }
@@ -652,7 +654,7 @@ function renderPessoas(){
     const p0=f.pessoas[0]||{}, nf=EST.fotos.filter(x=>f.pessoas.some(p=>p._id===x.pessoa)).length;
     const cpf=p0.CPFCNPJ?p0.CPFCNPJ:'sem CPF';
     return `<div class="cp-item"><div class="tx"><b>${esc(p0.NOME)}${f.pessoas.length>1?' <span class="cp-mut">+ '+esc(f.pessoas.slice(1).map(p=>p.NOME).join(', '))+'</span>':''}</b>
-      <span class="cp-mut">${esc(cpf)} · ${esc(f.papel||'')}${f.lote?' · '+esc(rotuloLote(f.lote)):''}${f.pino?' · 📌'+esc(rotuloPino(f.pino)):''}${f.lado?' · '+esc(f.lado):''}${nf?' · 📷'+nf:''}${f.local&&!f.pino?' · 📍':''}</span></div>
+      <span class="cp-mut">${esc(cpf)} · ${esc(f.papel||'')}${f.lote?' · '+esc(rotuloLote(f.lote)):''}${f.pino?' · ◉'+esc(rotuloPino(f.pino)):''}${f.lado?' · '+esc(f.lado):''}${nf?' · 📷'+nf:''}${f.local&&!f.pino?' · 📍':''}</span></div>
       <button class="cp-btn" data-ed="${f.id}">✏</button><button class="cp-btn perigo" data-ex="${f.id}">🗑</button></div>`;
   }).join('');
   el.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>abrirFicha(b.dataset.ed,{}));
@@ -710,7 +712,7 @@ async function renderFotos(){
   el.innerHTML=EST.fotos.map(f=>`<div class="cp-foto" data-id="${f.id}"><img alt="">
     <div class="cx"><select data-k="tipo">${optT(f.tipo)}</select><select data-k="pessoa">${optP(f.pessoa)}</select>
     <select data-k="lote">${opcoesLotes(f.lote).replace('— nenhum —','— lote —')}</select>
-    ${pinos.length?`<select data-k="pino"><option value="">— ponto 📌 —</option>${pinos.map(g=>`<option value="${esc(g.properties.id)}"${g.properties.id===f.pino?' selected':''}>📌 ${esc(g.properties.rotulo)}</option>`).join('')}</select>`:''}
+    ${pinos.length?`<select data-k="pino"><option value="">— ponto ◉ —</option>${pinos.map(g=>`<option value="${esc(g.properties.id)}"${g.properties.id===f.pino?' selected':''}>◉ ${esc(g.properties.rotulo)}</option>`).join('')}</select>`:''}
     <input data-k="legenda" placeholder="legenda (opcional)" value="${esc(f.legenda)}">
     <div class="cp-barra" style="justify-content:space-between"><span class="cp-mut">${f.lat!=null?'📍 ±'+Math.round(f.prec)+' m':'sem local'} · ${Math.round(f.bytes/1024)} KB</span><button class="cp-btn perigo" data-del>🗑</button></div></div></div>`).join('');
   el.querySelectorAll('.cp-foto').forEach(async card=>{
@@ -726,7 +728,7 @@ async function renderFotos(){
    ════════════════════════════════════════════════════════════════════════ */
 function renderEnviar(){
   const np=todasPessoas().length, nf=EST.fotos.length, npt=pinosTodos().length, ng=Object.keys(EST.geoms).length-npt;
-  $('cp-resumo').innerHTML=`${np} pessoa(s) · ${nf} foto(s) · ${npt} ponto(s) 📌 · ${ng} desenho(s) novo(s) ou corrigido(s)`+
+  $('cp-resumo').innerHTML=`${np} pessoa(s) · ${nf} foto(s) · ${npt} ponto(s) ◉ · ${ng} desenho(s) novo(s) ou corrigido(s)`+
     (np||nf||ng||npt?'':'<br>Nada para enviar ainda.');
   $('b-enviar').disabled=!(np||nf||ng||npt);
   renderFila();
