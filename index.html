@@ -426,23 +426,23 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
   <div class="sec">
     <div class="sec-title"><span id="tit-end">Endereço residencial</span></div>
     <div class="sec-body g4">
-      <div class="fld span2">
-        <label for="ENDxCEP">CEP<span class="obrig">*</span></label>
-        <div class="cep-row">
-          <input id="ENDxCEP" type="text" placeholder="00000-000" inputmode="numeric" maxlength="9" autocomplete="postal-code">
-          <button type="button" class="btn-cep" id="btn-cep" onclick="buscarCEP()">🔍 Buscar CEP</button>
+      <!-- 15/11/2026: ordem que filtra — UF → município → logradouro → número → complemento → bairro → CEP -->
+      <div class="fld full">
+        <div class="cep-row" style="align-items:center">
+          <button type="button" class="btn-cep" id="btn-local" onclick="enderecoPelaLocalizacao()">📍 Preencher com a minha localização</button>
+          <span class="dica" id="end-dica">Ou preencha na ordem abaixo: cada campo filtra as opções do seguinte.</span>
         </div>
-        <div class="msg-err" id="e-ENDxCEP">CEP inválido.</div>
-      </div>
-      <div class="fld">
-        <label for="ENDxMUN">Município<span class="obrig">*</span></label>
-        <input id="ENDxMUN" type="text" placeholder="Cidade" autocomplete="address-level2">
-        <div class="msg-err" id="e-ENDxMUN">Informe o município.</div>
       </div>
       <div class="fld">
         <label for="ENDxUF">UF<span class="obrig">*</span></label>
         <select id="ENDxUF" class="sel-uf" autocomplete="address-level1"></select>
         <div class="msg-err" id="e-ENDxUF">Selecione a UF.</div>
+      </div>
+      <div class="fld span3">
+        <label for="ENDxMUN">Município<span class="obrig">*</span></label>
+        <input id="ENDxMUN" type="text" placeholder="Escolha a UF e comece a digitar" autocomplete="address-level2" list="lista-mun">
+        <datalist id="lista-mun"></datalist>
+        <div class="msg-err" id="e-ENDxMUN">Informe o município.</div>
       </div>
       <div class="fld">
         <label for="ENDxLOGxTIPO">Tipo</label>
@@ -451,7 +451,8 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
       </div>
       <div class="fld span3">
         <label for="ENDxLOGxNOME">Logradouro<span class="obrig">*</span></label>
-        <input id="ENDxLOGxNOME" type="text" placeholder="Nome da rua, avenida, rodovia…" autocomplete="address-line1">
+        <input id="ENDxLOGxNOME" type="text" placeholder="Nome da rua, avenida, rodovia… (com internet, aparecem sugestões)" autocomplete="address-line1" list="lista-log">
+        <datalist id="lista-log"></datalist>
         <div class="msg-err" id="e-ENDxLOGxNOME">Informe o logradouro.</div>
       </div>
       <div class="fld">
@@ -475,9 +476,19 @@ footer{text-align:center;font-size:12px;color:var(--text-dim);margin-top:24px;li
       </div>
       <div class="fld span3">
         <label for="ENDxLOCALxNOME">Nome do bairro / localidade<span class="obrig">*</span></label>
-        <input id="ENDxLOCALxNOME" type="text" placeholder="Nome do bairro">
+        <input id="ENDxLOCALxNOME" type="text" placeholder="Nome do bairro" list="lista-bairro">
+        <datalist id="lista-bairro"></datalist>
         <div class="msg-err" id="e-ENDxLOCALxNOME">Informe o bairro ou localidade.</div>
       </div>
+      <div class="fld span2">
+        <label for="ENDxCEP">CEP<span class="obrig">*</span></label>
+        <div class="cep-row">
+          <input id="ENDxCEP" type="text" placeholder="00000-000" inputmode="numeric" maxlength="9" autocomplete="postal-code">
+          <button type="button" class="btn-cep" id="btn-cep" onclick="buscarCEP()">🔍 Buscar CEP</button>
+        </div>
+        <div class="msg-err" id="e-ENDxCEP">CEP inválido.</div>
+      </div>
+      <div class="fld span2" style="justify-content:flex-end"><span class="dica">Escolhendo a rua na lista, o bairro e o CEP vêm sozinhos. Se souber o CEP, “Buscar CEP” preenche o resto.</span></div>
     </div>
   </div>
 
@@ -708,12 +719,122 @@ async function buscarCEP(){
     const [tipo,nome]=separarTipo(j.logradouro);
     if(nome){ $('ENDxLOGxTIPO').value=tipo; $('ENDxLOGxNOME').value=nome; }
     if(j.bairro){ $('ENDxLOCALxNOME').value=j.bairro; $('ENDxLOCALxTIPO').value='bairro'; }
-    $('ENDxMUN').value=j.localidade||''; $('ENDxUF').value=j.uf||'';
+    $('ENDxMUN').value=j.localidade||''; $('ENDxUF').value=j.uf||''; filtrarMunicipios();
     ['ENDxLOGxNOME','ENDxLOCALxNOME','ENDxMUN','ENDxUF'].forEach(id=>{ if($(id).value) marcar(id,true); });
     (nome?$('ENDxLOGxNUM'):$('ENDxLOGxNOME')).focus();
     toast('Endereço preenchido pelo CEP. Confira e complete.','ok');
   }catch{ toast('Não consegui buscar o CEP. Preencha o endereço à mão.','err'); }
   finally{ _cepBuscando=false; btn.disabled=false; btn.textContent='🔍 Buscar CEP'; }
+}
+
+/* ── ENDEREÇO: UF → município → logradouro → bairro → CEP (15/11/2026) ──────────
+   Municípios: lib/municipios.json (IBGE; funciona sem internet no modo campo).
+   Logradouro: sugestões do ViaCEP pela UF + município + parte do nome (precisa de internet);
+   escolhendo a rua, vêm o bairro e o CEP. "📍 Minha localização": GPS → endereço (OpenStreetMap/
+   Nominatim, com internet); sem internet, só UF e município (sede mais próxima). */
+let _MUN=null, _logRes=[];
+const semAcento=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+async function municipios(){
+  if(_MUN) return _MUN;
+  try{ const r=await fetch('lib/municipios.json'); _MUN=(await r.json()).municipios||{}; }catch{ _MUN={}; }
+  return _MUN;
+}
+async function filtrarMunicipios(){
+  const uf=$('ENDxUF').value, dl=$('lista-mun');
+  if(!uf){ dl.innerHTML=''; return; }
+  const m=(await municipios())[uf]||[];
+  dl.innerHTML=m.map(x=>`<option value="${x[0].replace(/"/g,'&quot;')}">`).join('');
+}
+async function acertarMunicipio(){
+  const uf=$('ENDxUF').value, v=$('ENDxMUN').value; if(!uf||!v) return;
+  const m=(await municipios())[uf]||[], a=semAcento(v);
+  const ok=m.find(x=>semAcento(x[0])===a);
+  if(ok) $('ENDxMUN').value=ok[0];
+}
+$('ENDxUF').addEventListener('change',()=>{ filtrarMunicipios(); _logRes=[]; $('lista-log').innerHTML=''; $('lista-bairro').innerHTML=''; });
+$('ENDxMUN').addEventListener('focus',filtrarMunicipios);
+$('ENDxMUN').addEventListener('change',()=>{ acertarMunicipio(); _logRes=[]; $('lista-log').innerHTML=''; $('lista-bairro').innerHTML=''; });
+
+let _tLog=null, _ultBuscaLog='';
+$('ENDxLOGxNOME').addEventListener('input',()=>{ clearTimeout(_tLog); _tLog=setTimeout(sugerirLogradouros,600); });
+$('ENDxLOGxNOME').addEventListener('change',escolheuLogradouro);
+async function sugerirLogradouros(){
+  const uf=$('ENDxUF').value, mun=$('ENDxMUN').value.trim(), nome=$('ENDxLOGxNOME').value.trim();
+  if(!uf||!mun||nome.length<3||!navigator.onLine) return;
+  const chave=uf+'|'+semAcento(mun)+'|'+semAcento(nome); if(chave===_ultBuscaLog) return; _ultBuscaLog=chave;
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${uf}/${encodeURIComponent(mun)}/${encodeURIComponent(nome)}/json/`);
+    const j=await r.json(); if(!Array.isArray(j)) return;
+    _logRes=j;
+    const vistos=new Map();
+    j.forEach(x=>{ const [tipo,n]=separarTipo(x.logradouro); if(!n) return; const k=semAcento(n);
+      const o=vistos.get(k)||{n,tipo,bairros:new Set()}; if(x.bairro) o.bairros.add(x.bairro); vistos.set(k,o); });
+    $('lista-log').innerHTML=[...vistos.values()].slice(0,60).map(o=>`<option value="${o.n.replace(/"/g,'&quot;')}" label="${(o.tipo||'')+(o.bairros.size?' · '+[...o.bairros].slice(0,3).join(', '):'')}">`).join('');
+    escolheuLogradouro();
+  }catch(e){ /* sem resposta: segue digitando */ }
+}
+function escolheuLogradouro(){
+  const nome=semAcento($('ENDxLOGxNOME').value); if(!nome||!_logRes.length) return;
+  const daRua=_logRes.filter(x=>semAcento(separarTipo(x.logradouro)[1])===nome);
+  if(!daRua.length) return;
+  const tipo=separarTipo(daRua[0].logradouro)[0];
+  if(tipo && !$('ENDxLOGxTIPO').value) $('ENDxLOGxTIPO').value=tipo;
+  const bairros=[...new Set(daRua.map(x=>x.bairro).filter(Boolean))];
+  $('lista-bairro').innerHTML=bairros.map(b=>`<option value="${b.replace(/"/g,'&quot;')}">`).join('');
+  if(bairros.length===1 && !$('ENDxLOCALxNOME').value){ $('ENDxLOCALxNOME').value=bairros[0]; $('ENDxLOCALxTIPO').value='bairro'; marcar('ENDxLOCALxNOME',true); }
+  cepDaRua(daRua);
+}
+$('ENDxLOCALxNOME').addEventListener('change',()=>{
+  const nome=semAcento($('ENDxLOGxNOME').value); if(!nome||!_logRes.length) return;
+  cepDaRua(_logRes.filter(x=>semAcento(separarTipo(x.logradouro)[1])===nome));
+});
+/* CEP: só quando há um único CEP para a rua (no bairro escolhido); ruas longas têm vários (por faixa de número) */
+function cepDaRua(daRua){
+  const b=semAcento($('ENDxLOCALxNOME').value);
+  const lista=b?daRua.filter(x=>semAcento(x.bairro)===b):daRua;
+  const ceps=[...new Set(lista.map(x=>x.cep))];
+  if(ceps.length===1 && !$('ENDxCEP').value){ $('ENDxCEP').value=ceps[0]; marcar('ENDxCEP',true); }
+  else if(ceps.length>1) $('end-dica').textContent='Esta rua tem '+ceps.length+' CEPs (por trecho/número): confira o CEP no fim.';
+}
+
+/* 📍 Minha localização → endereço. No modo campo, usa o local já marcado na ficha (ponto ◉/GPS), se houver. */
+async function enderecoPelaLocalizacao(){
+  const b=$('btn-local'); b.disabled=true; const txt0=b.textContent; b.textContent='📍 Buscando…';
+  try{
+    let lat,lon;
+    const fixo=window.Campo&&window.Campo.localDaFicha?window.Campo.localDaFicha():null;
+    if(fixo){ lat=fixo.lat; lon=fixo.lon; }
+    else{
+      const p=await new Promise((ok,err)=>{ if(!navigator.geolocation) return err(new Error('sem GPS'));
+        navigator.geolocation.getCurrentPosition(ok,e=>err(new Error(e.code===1?'permissão de localização negada':'localização indisponível')),{enableHighAccuracy:true,timeout:20000,maximumAge:30000}); });
+      lat=p.coords.latitude; lon=p.coords.longitude;
+    }
+    const pre=(id,v)=>{ if(v && !$(id).value.trim()){ $(id).value=v; marcar(id,true); return 1; } return 0; };
+    let n=0, fonte='';
+    if(navigator.onLine){
+      try{
+        const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=pt-BR&zoom=18&lat=${lat}&lon=${lon}`);
+        const j=await r.json(), a=j.address||{};
+        const uf=(a['ISO3166-2-lvl4']||'').replace(/^BR-/,'');
+        if(uf && UFS.includes(uf) && !$('ENDxUF').value){ $('ENDxUF').value=uf; marcar('ENDxUF',true); n++; await filtrarMunicipios(); }
+        n+=pre('ENDxMUN',a.city||a.town||a.village||a.municipality||''); await acertarMunicipio();
+        if(a.road){ const [t,nm]=separarTipo(a.road); n+=pre('ENDxLOGxNOME',nm||a.road); if(t) n+=pre('ENDxLOGxTIPO',t); }
+        n+=pre('ENDxLOGxNUM',a.house_number||'');
+        n+=pre('ENDxLOCALxNOME',a.suburb||a.neighbourhood||a.quarter||a.city_district||'');
+        if(a.postcode && soDig(a.postcode).length===8) n+=pre('ENDxCEP',mCEP(a.postcode));
+        fonte='OpenStreetMap';
+        if(!$('ENDxCEP').value && $('ENDxLOGxNOME').value){ _ultBuscaLog=''; await sugerirLogradouros(); }
+      }catch(e){ fonte=''; }
+    }
+    if(!fonte){   /* sem internet: UF e município pela sede mais próxima */
+      const M=await municipios(); let best=null, dmin=1e9;
+      Object.keys(M).forEach(uf=>M[uf].forEach(x=>{ const d=(x[1]-lat)**2+((x[2]-lon)*Math.cos(lat*Math.PI/180))**2; if(d<dmin){ dmin=d; best=[uf,x[0]]; } }));
+      if(best){ if(!$('ENDxUF').value){ $('ENDxUF').value=best[0]; marcar('ENDxUF',true); n++; await filtrarMunicipios(); } n+=pre('ENDxMUN',best[1]); }
+      fonte='sede municipal mais próxima (sem internet)';
+    }
+    toast(n?`Endereço preenchido pela localização (${fonte}). Confira, principalmente o número e o CEP.`:'Os campos do endereço já estavam preenchidos: nada foi trocado.', n?'ok':'inf');
+  }catch(e){ toast('Não consegui usar a localização: '+e.message,'err'); }
+  finally{ b.disabled=false; b.textContent=txt0; }
 }
 
 /* ── MONTAGEM DO ENVIO ─────────────────────────────────────────── */

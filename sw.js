@@ -7,13 +7,13 @@
      o que já foi visto aparece. Nada é baixado em lote (os termos dos mapas gratuitos não permitem).
    - Google (Apps Script) não passa por aqui: o trabalho e a fila de envio ficam no IndexedDB (campo.js).
    Ao publicar uma versão nova dos arquivos, aumente o número em VERSAO. */
-const VERSAO = 'ptp-campo-v2';
+const VERSAO = 'ptp-campo-v3';
 const MAPAS = 'ptp-mapas-v1';          // não começa com "ptp-campo-": sobrevive às trocas de VERSAO
 const MAX_MAPAS = 3000;
 const SERVIDORES_MAPA = ['server.arcgisonline.com', 'tile.openstreetmap.org'];
 const ARQUIVOS = [
   './', 'index.html', 'campo.js', 'manifest.webmanifest',
-  'lib/leaflet.js', 'lib/leaflet.css',
+  'lib/leaflet.js', 'lib/leaflet.css', 'lib/municipios.json',
   'lib/images/layers.png', 'lib/images/layers-2x.png',
   'lib/images/marker-icon.png', 'lib/images/marker-icon-2x.png', 'lib/images/marker-shadow.png',
   'icons/icon-192.png', 'icons/icon-512.png'

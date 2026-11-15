@@ -652,6 +652,17 @@ function prepararFormulario(){
      <div class="fld full" id="f-pino"><label for="V_PINO">◉ Ponto no mapa (casa / terreno)</label><select id="V_PINO"></select></div>
      <div class="fld full"><div class="cp-barra" style="align-items:center"><button type="button" class="cp-btn" id="V_GPS">📍 Marcar onde estou</button><span class="cp-mut" id="V_LOCAL">sem local marcado</span></div></div>
    </div></div>
+   <div class="sec" id="sec-imovel"><div class="sec-title">🏠 Dados do imóvel <span class="opc">o que a pessoa souber informar</span></div><div class="sec-body g3">
+     <div class="fld"><label for="V_REG">Registro em cartório</label><select id="V_REG">
+       <option value="">— não informado —</option><option value="matrícula">tem matrícula</option><option value="transcrição">tem transcrição</option>
+       <option value="não tem">não tem registro</option><option value="não sabe">não sabe</option></select></div>
+     <div class="fld" id="f-regnum"><label for="V_REGNUM">Nº da matrícula / transcrição</label><input id="V_REGNUM" type="text" inputmode="numeric" placeholder="ex.: 11.620"></div>
+     <div class="fld" id="f-cart"><label for="V_CART">Cartório / comarca</label><input id="V_CART" type="text" placeholder="ex.: 1º Ofício de Aquiraz"></div>
+     <div class="fld"><label for="V_IPTU">Tem IPTU?</label><select id="V_IPTU">
+       <option value="">— não informado —</option><option value="sim">sim</option><option value="não">não</option><option value="não sabe">não sabe</option></select></div>
+     <div class="fld span2" id="f-iptunum"><label for="V_IPTUNUM">Inscrição do IPTU</label><input id="V_IPTUNUM" type="text" placeholder="nº da inscrição imobiliária (está no carnê)"></div>
+     <div class="fld full"><label for="V_IMDOCS">Outros documentos do imóvel</label><input id="V_IMDOCS" type="text" placeholder="contrato de compra e venda, recibo, escritura, posse…"></div>
+   </div></div>
    <div class="sec" id="sec-fotos-pessoa"><div class="sec-title">📷 Fotos desta pessoa <span class="opc">fachada, documentos da pessoa, documentos do imóvel…</span></div><div class="sec-body">
      <div class="cp-barra" style="align-items:center">
        <select id="V_FTIPO" style="max-width:200px;padding:7px 6px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px">${TIPOS_FOTO.map(t=>`<option>${t}</option>`).join('')}</select>
@@ -669,6 +680,7 @@ function prepararFormulario(){
   const fotoDaFicha=(inp,origem)=>receberFotos(inp,origem,{pessoa:_fichaId+'-1', tipo:$('V_FTIPO').value, lote:$('V_LOTE').value, pino:$('V_PINO').value, naFicha:true});
   $('V_FCAM').onchange=e=>fotoDaFicha(e.target,'camera');
   $('V_FGAL').onchange=e=>fotoDaFicha(e.target,'galeria');
+  $('V_REG').onchange=mostrarCamposImovel; $('V_IPTU').onchange=mostrarCamposImovel;
   $('V_GPS').onclick=async()=>{ const b=$('V_GPS'); b.disabled=true; b.textContent='📍 Buscando…';
     try{ _localFicha=await posicao(); mostrarLocalFicha(); }catch(e){ toast(e.message,'err'); }
     finally{ b.disabled=false; b.textContent='📍 Marcar onde estou'; } };
@@ -703,6 +715,31 @@ function porCampos(raw){
   return est;
 }
 
+/* 15/11/2026: dados do imóvel na ficha (registro, nº, cartório, IPTU, outros documentos) */
+function mostrarCamposImovel(){
+  const r=$('V_REG').value, temReg=r==='matrícula'||r==='transcrição';
+  $('f-regnum').hidden=!temReg; $('f-cart').hidden=!temReg;
+  $('f-regnum').querySelector('label').textContent=r==='transcrição'?'Nº da transcrição':'Nº da matrícula';
+  $('f-iptunum').hidden=$('V_IPTU').value!=='sim';
+}
+function lerImovel(){
+  const r=$('V_REG').value, temReg=r==='matrícula'||r==='transcrição', o={};
+  if(r) o.registro=r;
+  if(temReg && $('V_REGNUM').value.trim()) o.registro_numero=$('V_REGNUM').value.trim();
+  if(temReg && $('V_CART').value.trim()) o.cartorio=$('V_CART').value.trim();
+  if($('V_IPTU').value) o.iptu=$('V_IPTU').value;
+  if($('V_IPTU').value==='sim' && $('V_IPTUNUM').value.trim()) o.iptu_inscricao=$('V_IPTUNUM').value.trim();
+  if($('V_IMDOCS').value.trim()) o.outros_documentos=$('V_IMDOCS').value.trim();
+  return o;
+}
+function textoImovel(im){
+  if(!im) return '';
+  const p=[];
+  if(im.registro==='matrícula'||im.registro==='transcrição') p.push((im.registro==='matrícula'?'Mat. ':'Transc. ')+(im.registro_numero||'s/nº'));
+  else if(im.registro) p.push('registro: '+im.registro);
+  if(im.iptu) p.push('IPTU: '+(im.iptu==='sim'&&im.iptu_inscricao?im.iptu_inscricao:im.iptu));
+  return p.join(' · ');
+}
 /* 15/11/2026: a ficha já nasce com o id, para as fotos tiradas DENTRO do cadastro ficarem ligadas a ela */
 let _fichaId=null, _fotosSessao=[];
 async function renderFotosFicha(){
@@ -730,6 +767,10 @@ function abrirFicha(id,pre){
   $('V_LOTE').innerHTML=opcoesLotes(f?f.lote:(pre.lote||''));
   $('V_PAPEL').value=f?(f.papel||'confinante'):(pre.papel||'confinante');
   $('V_LADO').value=f?(f.lado||''):'';
+  const im=(f&&f.imovel)||{};
+  $('V_REG').value=im.registro||''; $('V_REGNUM').value=im.registro_numero||''; $('V_CART').value=im.cartorio||'';
+  $('V_IPTU').value=im.iptu||''; $('V_IPTUNUM').value=im.iptu_inscricao||''; $('V_IMDOCS').value=im.outros_documentos||'';
+  mostrarCamposImovel();
   const pinoIni=f?(f.pino||''):(pre.pino||'');
   $('V_PINO').innerHTML='<option value="">— nenhum —</option>'+pinosTodos().map(g=>`<option value="${esc(g.properties.id)}"${g.properties.id===pinoIni?' selected':''}>${esc(g.properties.rotulo)}</option>`).join('');
   $('f-pino').hidden=!pinosTodos().length;
@@ -751,6 +792,7 @@ function salvarFicha(){
   pessoas.forEach((p,i)=>{ p._id=f.id+'-'+(i+1); });
   f.raw=lerCampos(); f.tipo=f.raw.tipo; f.pessoas=pessoas;
   f.lote=$('V_LOTE').value; f.papel=$('V_PAPEL').value; f.lado=$('V_LADO').value; f.pino=$('V_PINO').value;
+  f.imovel=lerImovel();
   /* sem GPS marcado: a pessoa fica no local do ponto */
   if(f.pino && (!_localFicha || _localFicha.origem==='pino')) _localFicha=localDoPino(f.pino);
   if(!f.pino && _localFicha && _localFicha.origem==='pino') _localFicha=null;
@@ -775,7 +817,7 @@ function renderPessoas(){
     const p0=f.pessoas[0]||{}, nf=EST.fotos.filter(x=>f.pessoas.some(p=>p._id===x.pessoa)).length;
     const cpf=p0.CPFCNPJ?p0.CPFCNPJ:'sem CPF';
     return `<div class="cp-item"><div class="tx"><b>${esc(p0.NOME)}${f.pessoas.length>1?' <span class="cp-mut">+ '+esc(f.pessoas.slice(1).map(p=>p.NOME).join(', '))+'</span>':''}</b>
-      <span class="cp-mut">${esc(cpf)} · ${esc(f.papel||'')}${f.lote?' · '+esc(rotuloLote(f.lote)):''}${f.pino?' · ◉'+esc(rotuloPino(f.pino)):''}${f.lado?' · '+esc(f.lado):''}${nf?' · 📷'+nf:''}${f.local&&!f.pino?' · 📍':''}</span></div>
+      <span class="cp-mut">${esc(cpf)} · ${esc(f.papel||'')}${f.lote?' · '+esc(rotuloLote(f.lote)):''}${f.pino?' · ◉'+esc(rotuloPino(f.pino)):''}${f.lado?' · '+esc(f.lado):''}${textoImovel(f.imovel)?' · 📄 '+esc(textoImovel(f.imovel)):''}${nf?' · 📷'+nf:''}${f.local&&!f.pino?' · 📍':''}</span></div>
       <button class="cp-btn" data-ed="${f.id}">✏</button><button class="cp-btn perigo" data-ex="${f.id}">🗑</button></div>`;
   }).join('');
   el.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>abrirFicha(b.dataset.ed,{}));
@@ -785,25 +827,38 @@ function renderPessoas(){
 /* ════════════════════════════════════════════════════════════════════════
    FOTOS
    ════════════════════════════════════════════════════════════════════════ */
-function carregarImg(file){
-  return new Promise((ok,err)=>{ const u=URL.createObjectURL(file), im=new Image();
-    im.onload=()=>{ ok({im,u}); }; im.onerror=()=>{ URL.revokeObjectURL(u); err(new Error('imagem não reconhecida (HEIC? tire a foto pelo botão da câmera)')); }; im.src=u; });
+function carregarImg(blob){
+  return new Promise((ok,err)=>{ const u=URL.createObjectURL(blob), im=new Image();
+    im.onload=()=>{ ok({im,u}); }; im.onerror=()=>{ URL.revokeObjectURL(u); err(new Error('o navegador não reconheceu a imagem')); }; im.src=u; });
 }
+/* 15/11/2026: a foto é COPIADA para a memória logo que chega (no iPhone, o arquivo que a galeria
+   entrega é temporário e pode sumir — inclusive ao limpar o campo); se o <img> não abrir, tenta o
+   createImageBitmap. Mensagens dizem o motivo (arquivo vazio = foto que está só no iCloud). */
 async function comprimir(file){
-  const {im,u}=await carregarImg(file);
+  let dados;
+  try{ dados=new Blob([await file.arrayBuffer()],{type:file.type||'image/jpeg'}); }
+  catch(e){ throw new Error('não consegui ler o arquivo ('+(e.name||e.message)+'). Se a foto estiver só no iCloud, ela precisa de internet para ser baixada.'); }
+  if(!dados.size) throw new Error('arquivo vazio — a foto pode estar só no iCloud (precisa de internet para baixar a original).');
+  let fonte=null, w0=0, h0=0, u=null;
+  try{ const r=await carregarImg(dados); fonte=r.im; u=r.u; w0=fonte.naturalWidth; h0=fonte.naturalHeight; }
+  catch(e){
+    if(window.createImageBitmap){ try{ fonte=await createImageBitmap(dados); w0=fonte.width; h0=fonte.height; }catch(e2){} }
+    if(!fonte) throw new Error('formato não reconhecido ('+(file.type||'sem tipo')+'). Tente pelo botão “Tirar foto”.');
+  }
   try{
-    const w0=im.naturalWidth, h0=im.naturalHeight, k=Math.min(1,FOTO_MAX/Math.max(w0,h0));
+    const k=Math.min(1,FOTO_MAX/Math.max(w0,h0));
     const w=Math.round(w0*k), h=Math.round(h0*k);
     const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-    cv.getContext('2d').drawImage(im,0,0,w,h);
+    cv.getContext('2d').drawImage(fonte,0,0,w,h);
     const blob=await new Promise(ok=>cv.toBlob(ok,'image/jpeg',FOTO_QUAL));
     if(!blob) throw new Error('não consegui reduzir a foto');
     return {blob,w,h};
-  } finally { URL.revokeObjectURL(u); }
+  } finally { if(u) URL.revokeObjectURL(u); if(fonte&&fonte.close) try{ fonte.close(); }catch{} }
 }
 async function receberFotos(input,origem,pre={}){
-  const files=[...(input.files||[])]; input.value='';
-  if(!files.length) return;
+  const files=[...(input.files||[])];
+  if(!files.length){ toast('Nenhuma foto chegou da galeria. Se ela estiver só no iCloud, conecte à internet ou tire a foto pela câmera.','err'); return; }
+  toast('Guardando '+files.length+' foto(s)…','inf');
   let pos=null;
   if(origem==='camera'){ try{ pos=await posicao(12000); }catch(e){ toast('Foto sem localização: '+e.message,'inf'); } }
   let n=0;
@@ -817,9 +872,11 @@ async function receberFotos(input,origem,pre={}){
         em:origem==='camera'?agoraISO():new Date(file.lastModified||Date.now()).toISOString(), origem, w, h, bytes:blob.size, original:file.name||''});
       if(pre.naFicha) _fotosSessao.push(id);
       n++;
-    }catch(e){ toast((file.name||'foto')+': '+e.message,'err'); }
+    }catch(e){ toast((file.name||'foto')+': '+e.message,'err'); await new Promise(r=>setTimeout(r,2500)); }
   }
-  await salvarJa(); contar();
+  input.value='';   /* só depois de ler (no iPhone, limpar antes podia invalidar o arquivo) */
+  try{ await salvarJa(); }catch(e){ toast('Não consegui guardar no celular: '+e.message,'err'); }
+  contar();
   if(n){ toast(n+' foto(s) guardada(s) no celular.','ok'); if(pre.naFicha) renderFotosFicha(); else abrirAba('fotos'); }
 }
 const _urls=new Map();
@@ -871,7 +928,7 @@ function montarCorpo(){
   EST.fichas.forEach(f=>{
     f.pessoas.forEach(p=>{ pessoas.push(Object.assign({},p)); ids.add(p._id);
       if(f.lote||f.papel||f.pino) vinculos.push({pessoa:p._id, lote:f.lote||'', lote_rotulo:rotuloLote(f.lote), pino:f.pino||'', pino_rotulo:rotuloPino(f.pino), papel:f.papel||'', lado:f.lado||''}); });
-    fichas.push({id:f.id, pessoas:f.pessoas.map(p=>p._id), lote:f.lote||'', pino:f.pino||'', papel:f.papel||'', lado:f.lado||'', local:f.local||null, autorizou:!!f.autorizou, criado_em:f.criado_em, alterado_em:f.alterado_em});
+    fichas.push({id:f.id, pessoas:f.pessoas.map(p=>p._id), lote:f.lote||'', pino:f.pino||'', papel:f.papel||'', lado:f.lado||'', local:f.local||null, imovel:f.imovel||{}, autorizou:!!f.autorizou, criado_em:f.criado_em, alterado_em:f.alterado_em});
   });
   const fotos=EST.fotos.map(f=>Object.assign({},f,{pessoa:ids.has(f.pessoa)?f.pessoa:'', lote_rotulo:rotuloLote(f.lote), pino_rotulo:rotuloPino(f.pino)}));
   const geometrias={type:'FeatureCollection',features:Object.values(EST.geoms)};
@@ -949,5 +1006,7 @@ async function sincronizar(avisar){
 }
 
 /* exporta para o index.html */
-window.Campo={iniciar, salvarFicha, _estado:()=>EST, _sincronizar:sincronizar};
+window.Campo={iniciar, salvarFicha, _estado:()=>EST, _sincronizar:sincronizar,
+  /* endereço pela localização: na ficha, usa o ponto ◉ ou o GPS já marcado */
+  localDaFicha:()=>(!$('form').hidden && _localFicha)?_localFicha:null};
 })();
