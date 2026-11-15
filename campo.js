@@ -19,7 +19,7 @@
 
 const PAPEIS=['proprietário','confinante','possuidor','ocupante','herdeiro','procurador','informante','outro'];
 const LADOS=['frente','fundos','lado direito','lado esquerdo','norte','sul','leste','oeste','nordeste','noroeste','sudeste','sudoeste'];
-const TIPOS_FOTO=['fachada','documento','print anotado','croqui','marco / divisa','cerca / muro','outro'];
+const TIPOS_FOTO=['fachada','documento da pessoa','documento do imóvel','print anotado','croqui','marco / divisa','cerca / muro','outro'];
 const FOTO_MAX=1600, FOTO_QUAL=0.75;
 const qs=new URLSearchParams(location.search);
 const CODIGO=(qs.get('t')||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -111,6 +111,9 @@ body.campo .obrig{display:none} body.campo .obrig.cp-sim{display:inline}
 .cp-rot.cp-estudo b{font-size:11px;letter-spacing:.4px;display:block}
 .cp-rot.cp-estudo span{font-weight:500;font-size:10.5px}
 .cp-vert{background:#fff;border:2px solid #e05252;border-radius:50%}
+.cp-mira{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:800;pointer-events:none}
+.cp-mira svg{display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
+.cp-mira-txt{position:absolute;left:50%;top:calc(50% - 44px);transform:translateX(-50%);z-index:800;pointer-events:none;background:rgba(13,17,23,.85);color:#ffd27a;font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;white-space:nowrap}
 .cp-pino svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
 .cp-pino-rot{background:rgba(13,17,23,.8);border:none;box-shadow:none;color:#ffd27a;font-size:11px;font-weight:600;padding:1px 4px}
 .cp-pino-rot:before{display:none}
@@ -287,8 +290,9 @@ function iniciarMapa(){
   L.control.layers({'Satélite':sat,'Ruas':osm,'Sem fundo':nada},null,{position:'topright'}).addTo(MAPA);
   MAPA.on('baselayerchange',e=>{ _fundo={camada:e.layer, url:e.layer===sat?SAT_URL:e.layer===osm?OSM_URL:''}; medirMapaGuardado(); });
   MAPA.on('moveend',()=>{ clearTimeout(_tMedir); _tMedir=setTimeout(medirMapaGuardado,1500); });
-  CAM_LOTES=L.featureGroup().addTo(MAPA); CAM_ROT=L.layerGroup().addTo(MAPA); CAM_PINOS=L.layerGroup().addTo(MAPA); CAM_PESSOAS=L.layerGroup().addTo(MAPA); CAM_EDICAO=L.layerGroup().addTo(MAPA);
-  MAPA.on('click',e=>{ if(_modo&&_modo.tipo==='desenho') addVerticeDesenho(e.latlng); else if(_modo&&_modo.tipo==='pino') criarPino(e.latlng,null); });
+  CAM_LOTES=L.featureGroup().addTo(MAPA); CAM_ROT=L.layerGroup().addTo(MAPA); CAM_PINOS=L.layerGroup().addTo(MAPA);
+  MAPA.createPane('pinos').style.zIndex=700;   /* pontos ◉ por cima das etiquetas dos lotes */ CAM_PESSOAS=L.layerGroup().addTo(MAPA); CAM_EDICAO=L.layerGroup().addTo(MAPA);
+  MAPA.on('click',e=>{ if(_modo&&_modo.tipo==='desenho') addVerticeDesenho(e.latlng); else if(_modo&&(_modo.tipo==='novopino'||_modo.tipo==='moverpino')) moverPinoNovo(e.latlng); else if(!_modo) limparSelecao(); });
   MAPA.on('zoomend',()=>$('cp-mapa-div').classList.toggle('sem-rot',MAPA.getZoom()<17));
   const st=document.createElement('style'); st.textContent='#cp-mapa-div.sem-rot .cp-rot:not(.cp-estudo){display:none} #cp-mapa-div.sem-rot .cp-estudo span{display:none}'; document.head.appendChild(st);
   desenharLotes(); verTudo(); setTimeout(medirMapaGuardado,2500);
@@ -366,6 +370,7 @@ function selecionarLote(id){
      <button class="cp-btn" id="pl-editar">✏ Corrigir desenho</button>
      ${editado?'<button class="cp-btn" id="pl-desfazer">↺ Voltar ao desenho original</button>':''}
      ${l.novo?'<button class="cp-btn" id="pl-renomear">🏷 Renomear</button><button class="cp-btn perigo" id="pl-apagar">🗑 Apagar</button>':''}
+     ${BTN_LIMPAR}
    </div>`);
   $('pl-pessoa').onclick=()=>abrirFicha(null,{lote:id, papel:l.papel==='estudo'?'proprietário':'confinante'});
   $('pl-foto').onchange=e=>receberFotos(e.target,'camera',{lote:id});
@@ -378,7 +383,11 @@ function selecionarLote(id){
       _selId=null; salvarRascunho(); desenharLotes(); painel('<div class="cp-mut">Polígono apagado.</div>'); };
   }
 }
-function painel(html){ $('cp-painel').innerHTML=html; }
+function painel(html){ $('cp-painel').innerHTML=html; const b=$('b-limpar-sel'); if(b) b.onclick=limparSelecao; }
+const PAINEL_VAZIO='<div class="cp-mut">Toque num lote para ver, cadastrar pessoas ou corrigir o desenho.</div>';
+const BTN_LIMPAR='<button class="cp-btn" id="b-limpar-sel" title="Ou toque numa área vazia do mapa">✖ Limpar seleção</button>';
+/* 15/11/2026: tocar no vazio do mapa (ou no botão) tira a seleção do lote/ponto */
+function limparSelecao(){ if(_selId==null && _pinoSel==null) return; _selId=null; _pinoSel=null; desenharLotes(); painel(PAINEL_VAZIO); }
 
 /* ── Pontos (pinos) — 15/11/2026 ────────────────────────────────────────
    Um "◉" na casa/terreno onde as informações estão sendo coletadas. Vai em
@@ -392,44 +401,71 @@ function desenharPinos(){
   CAM_PINOS.clearLayers();
   pinosTodos().forEach(g=>{
     const id=g.properties.id, c=g.geometry.coordinates, sel=id===_pinoSel;
+    if(_modo&&_modo.tipo==='moverpino'&&_modo.id===id) return;   /* enquanto move, quem aparece é a mira */
     const n=EST.fichas.filter(f=>f.pino===id).length;
     /* círculo (alvo): o CENTRO do círculo é a coordenada (iconAnchor = metade do tamanho) — pedido de 15/11/2026 */
     const t=sel?34:26, r=t/2;
     const html=`<svg width="${t}" height="${t}" viewBox="0 0 ${t} ${t}"><circle cx="${r}" cy="${r}" r="${r-2}" fill="${sel?'#ff9f1a':'#00acc1'}" stroke="#fff" stroke-width="3"/><circle cx="${r}" cy="${r}" r="${sel?4.5:3.5}" fill="#fff"/></svg>`;
     const mk=L.marker([c[1],c[0]],{icon:L.divIcon({className:'cp-pino',html,iconSize:[t,t],iconAnchor:[r,r]}),
-      draggable:!!(_modo&&_modo.tipo==='moverpino'&&_modo.id===id),keyboard:false,zIndexOffset:1000});
+      keyboard:false,zIndexOffset:1000,pane:'pinos'});
     mk.bindTooltip(esc(g.properties.rotulo||id)+(n?' · 👤'+n:''),{permanent:true,direction:'right',offset:[r,0],className:'cp-pino-rot'});
     mk.on('click',ev=>{ L.DomEvent.stopPropagation(ev); if(_modo) return; selecionarPino(id); });
-    mk.on('dragend',ev=>{ const ll=ev.target.getLatLng(); g.geometry.coordinates=[+ll.lng.toFixed(7),+ll.lat.toFixed(7)]; g.properties.movido_em=agoraISO();
-      EST.fichas.forEach(f=>{ if(f.pino===id && f.local && f.local.origem==='pino') f.local=localDoPino(id); });
-      salvarRascunho(); });
     mk.addTo(CAM_PINOS);
   });
 }
 function localDoPino(id){ const g=pinoDe(id); if(!g) return null; const c=g.geometry.coordinates; return {lat:c[1],lon:c[0],prec:null,em:g.properties.criado_em||agoraISO(),origem:'pino'}; }
+/* 15/11/2026: o ponto aparece NA HORA no centro da tela; a pessoa posiciona (arrasta, toca no mapa
+   ou usa o GPS), confirma e só depois dá o nome. */
+function iconeAlvo(t,cor,miolo){ const r=t/2;
+  return L.divIcon({className:'cp-pino',iconSize:[t,t],iconAnchor:[r,r],
+    html:`<svg width="${t}" height="${t}" viewBox="0 0 ${t} ${t}"><circle cx="${r}" cy="${r}" r="${r-2}" fill="${cor}" stroke="#fff" stroke-width="3"/><circle cx="${r}" cy="${r}" r="${miolo}" fill="#fff"/></svg>`}); }
+/* 15/11/2026 (05h34): MIRA FIXA NO CENTRO — o ◉ fica parado no meio do mapa e a pessoa arrasta o
+   MAPA por baixo, com o dedo em qualquer lugar (vê sempre onde o ponto está). A coordenada gravada é o
+   centro do mapa = centro da mira (os dois pelo centro do mesmo quadro). Tocar no mapa leva o lugar
+   tocado para baixo da mira. */
+function mostrarMira(on,txt){
+  const div=$('cp-mapa-div'); if(!div) return;
+  div.querySelectorAll('.cp-mira,.cp-mira-txt').forEach(e=>e.remove());
+  if(!on) return;
+  const m=document.createElement('div'); m.className='cp-mira';
+  m.innerHTML='<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#ff9f1a" fill-opacity=".85" stroke="#fff" stroke-width="3"/><circle cx="20" cy="20" r="4" fill="#fff"/></svg>';
+  const t=document.createElement('div'); t.className='cp-mira-txt'; t.textContent=txt||'arraste o mapa até o ◉ ficar no lugar certo';
+  div.appendChild(m); div.appendChild(t);
+}
+const pertoDe=(a,b)=>a&&b&&Math.abs(a.lat-b.lat)<1e-6&&Math.abs(a.lng-b.lng)<1e-6;
 function iniciarPino(){
-  if(_modo) return;
-  _modo={tipo:'pino'}; _selId=null; _pinoSel=null; desenharLotes();
+  if(_modo||!MAPA) return;
+  _selId=null; _pinoSel=null; desenharLotes();
+  _modo={tipo:'novopino', gps:null, gpsLL:null};
+  mostrarMira(true);
+  toast('Arraste o mapa (em qualquer lugar) até o ◉ ficar sobre a casa ou o terreno.','inf');
   $('cp-barra-mapa').hidden=true;
   painel(`<h3>◉ Indicar ponto</h3>
-   <div class="cp-mut">Toque no mapa sobre a casa ou o terreno. Ou, estando lá, use o GPS.</div>
+   <div class="cp-aviso">O ponto está no <b>centro do mapa</b> e fica parado. <b>Arraste o mapa</b> com o dedo, em qualquer lugar, até o ◉ ficar sobre a casa ou o terreno (ou toque no lugar certo). Aproxime o mapa para acertar melhor. Estando lá, pode usar o GPS.</div>
    <div class="cp-barra">
-     <button class="cp-btn" id="pn-gps">📍 Ponto onde estou</button>
+     <button class="cp-btn" id="pn-gps">📍 Levar para onde estou</button>
+     <button class="cp-btn ok" id="pn-ok">✔ Está no lugar certo</button>
      <button class="cp-btn perigo" id="pn-cancel">✖ Cancelar</button>
    </div>`);
   $('pn-gps').onclick=async()=>{ const b=$('pn-gps'); b.disabled=true; b.textContent='📍 Buscando…';
-    try{ const p=await posicao(); if(p.prec>15) toast('Atenção: precisão do GPS de '+Math.round(p.prec)+' m.','err'); criarPino(L.latLng(p.lat,p.lon),p); }
-    catch(e){ toast(e.message,'err'); b.disabled=false; b.textContent='📍 Ponto onde estou'; } };
+    try{ const p=await posicao(); if(p.prec>15) toast('Atenção: precisão do GPS de '+Math.round(p.prec)+' m.','err');
+      _modo.gps=p; MAPA.setView([p.lat,p.lon],Math.max(MAPA.getZoom(),18),{animate:false}); _modo.gpsLL=MAPA.getCenter(); }
+    catch(e){ toast(e.message,'err'); }
+    finally{ b.disabled=false; b.textContent='📍 Levar para onde estou'; } };
+  $('pn-ok').onclick=()=>{ const c=MAPA.getCenter(); criarPino(c, pertoDe(c,_modo.gpsLL)?_modo.gps:null); };
   $('pn-cancel').onclick=sairModo;
 }
+function moverPinoNovo(ll){ if(_modo&&(_modo.tipo==='novopino'||_modo.tipo==='moverpino')) MAPA.panTo(ll); }
 function criarPino(ll,gps){
-  EST.seqPino=(EST.seqPino||0)+1;
-  const id='PT'+EST.seqPino;
+  const seq=(EST.seqPino||0)+1;
   /* o ponto cai dentro de algum lote? fica anotado (o rótulo sugere o lote) */
   let lote='';
   try{ lotesTodos().forEach(l=>{ if(!lote && dentro([ll.lng,ll.lat],geomAtual(l).geometry)) lote=l.id; }); }catch{}
-  const sug=(lote?rotuloLote(lote)+' — ':'')+'Ponto '+EST.seqPino;
-  const rot=(prompt('Nome do ponto (ex.: casa do Sr. José, terreno de esquina):',sug)||'').trim()||sug;
+  const sug=(lote?rotuloLote(lote)+' — ':'')+'Ponto '+seq;
+  const resp=prompt('Nome do ponto (ex.: casa do Sr. José, terreno de esquina):',sug);
+  if(resp===null) return;                       /* "Cancelar" no nome: continua posicionando */
+  const rot=resp.trim()||sug;
+  EST.seqPino=seq; const id='PT'+seq;
   EST.geoms[id]={type:'Feature',properties:{id,origem:'pino',rotulo:rot,lote,criado_em:agoraISO(),gps:gps?{prec:gps.prec,em:gps.em}:null},
     geometry:{type:'Point',coordinates:[+ll.lng.toFixed(7),+ll.lat.toFixed(7)]}};
   salvarRascunho(); sairModo(); selecionarPino(id);
@@ -457,16 +493,25 @@ function selecionarPino(id){
      <button class="cp-btn" id="pp-mover">✋ Mover</button>
      <button class="cp-btn" id="pp-renomear">🏷 Renomear</button>
      <button class="cp-btn perigo" id="pp-apagar">🗑 Apagar</button>
+     ${BTN_LIMPAR}
    </div>`);
   $('pp-pessoa').onclick=()=>abrirFicha(null,{pino:id, lote:g.properties.lote||'', papel:'confinante'});
   $('pp-foto').onchange=e=>receberFotos(e.target,'camera',{pino:id, lote:g.properties.lote||'', tipo:'fachada'});
-  $('pp-mover').onclick=()=>{ _modo={tipo:'moverpino',id}; $('cp-barra-mapa').hidden=true; desenharPinos();
-    painel(`<h3>✋ Movendo: ${esc(g.properties.rotulo)}</h3><div class="cp-mut">Arraste o ◉ até o lugar certo.</div>
-      <div class="cp-barra"><button class="cp-btn" id="pm-gps">📍 Levar para onde estou</button><button class="cp-btn ok" id="pm-ok">✔ Pronto</button></div>`);
-    $('pm-gps').onclick=async()=>{ try{ const p=await posicao(); g.geometry.coordinates=[p.lon,p.lat]; g.properties.gps={prec:p.prec,em:p.em};
+  $('pp-mover').onclick=()=>{
+    const c0=g.geometry.coordinates;
+    _modo={tipo:'moverpino',id,gps:null,gpsLL:null}; $('cp-barra-mapa').hidden=true;
+    MAPA.setView([c0[1],c0[0]],Math.max(MAPA.getZoom(),18),{animate:false});
+    desenharPinos(); mostrarMira(true);
+    painel(`<h3>✋ Movendo: ${esc(g.properties.rotulo)}</h3><div class="cp-aviso"><b>Arraste o mapa</b> (em qualquer lugar) até o ◉ do centro ficar no lugar certo, ou toque no lugar certo.</div>
+      <div class="cp-barra"><button class="cp-btn" id="pm-gps">📍 Levar para onde estou</button><button class="cp-btn ok" id="pm-ok">✔ Pronto</button><button class="cp-btn perigo" id="pm-cancel">✖ Cancelar</button></div>`);
+    $('pm-gps').onclick=async()=>{ try{ const p=await posicao(); if(p.prec>15) toast('Atenção: precisão do GPS de '+Math.round(p.prec)+' m.','err');
+      _modo.gps=p; MAPA.setView([p.lat,p.lon],Math.max(MAPA.getZoom(),18),{animate:false}); _modo.gpsLL=MAPA.getCenter(); }catch(e){ toast(e.message,'err'); } };
+    $('pm-ok').onclick=()=>{ const c=MAPA.getCenter();
+      g.geometry.coordinates=[+c.lng.toFixed(7),+c.lat.toFixed(7)]; g.properties.movido_em=agoraISO();
+      g.properties.gps=pertoDe(c,_modo.gpsLL)&&_modo.gps?{prec:_modo.gps.prec,em:_modo.gps.em}:null;
       EST.fichas.forEach(f=>{ if(f.pino===id && f.local && f.local.origem==='pino') f.local=localDoPino(id); });
-      salvarRascunho(); desenharPinos(); MAPA.panTo([p.lat,p.lon]); }catch(e){ toast(e.message,'err'); } };
-    $('pm-ok').onclick=()=>{ sairModo(); selecionarPino(id); }; };
+      salvarRascunho(); sairModo(); selecionarPino(id); };
+    $('pm-cancel').onclick=()=>{ sairModo(); selecionarPino(id); }; };
   $('pp-renomear').onclick=()=>{ const n=prompt('Nome do ponto:',g.properties.rotulo); if(n&&n.trim()){ g.properties.rotulo=n.trim(); salvarRascunho(); selecionarPino(id); } };
   $('pp-apagar').onclick=()=>{ if(!confirm('Apagar o ponto "'+g.properties.rotulo+'"? As pessoas e fotos continuam, só perdem a ligação com o ponto.')) return;
     delete EST.geoms[id]; EST.fichas.forEach(f=>{ if(f.pino===id){ f.pino=''; } }); EST.fotos.forEach(f=>{ if(f.pino===id) f.pino=''; });
@@ -588,7 +633,7 @@ function redesenharEdicao(){
      .on('click',()=>{ pts.splice(i+1,0,[+((p[0]+q[0])/2).toFixed(7),+((p[1]+q[1])/2).toFixed(7)]); redesenharEdicao(); });
   });
 }
-function sairModo(){ _modo=null; _pinoSel=null; CAM_EDICAO.clearLayers(); $('cp-barra-mapa').hidden=false; desenharLotes(); painel('<div class="cp-mut">Toque num lote para ver, cadastrar pessoas ou corrigir o desenho.</div>'); }
+function sairModo(){ _modo=null; _pinoSel=null; mostrarMira(false); CAM_EDICAO.clearLayers(); $('cp-barra-mapa').hidden=false; desenharLotes(); painel('<div class="cp-mut">Toque num lote para ver, cadastrar pessoas ou corrigir o desenho.</div>'); }
 
 /* ════════════════════════════════════════════════════════════════════════
    PESSOAS (fichas) — usa o formulário do index.html
@@ -606,8 +651,24 @@ function prepararFormulario(){
      <div class="fld"><label for="V_LADO">Lado (em relação ao imóvel em estudo)</label><select id="V_LADO"><option value="">—</option>${LADOS.map(p=>`<option>${p}</option>`).join('')}</select></div>
      <div class="fld full" id="f-pino"><label for="V_PINO">◉ Ponto no mapa (casa / terreno)</label><select id="V_PINO"></select></div>
      <div class="fld full"><div class="cp-barra" style="align-items:center"><button type="button" class="cp-btn" id="V_GPS">📍 Marcar onde estou</button><span class="cp-mut" id="V_LOCAL">sem local marcado</span></div></div>
+   </div></div>
+   <div class="sec" id="sec-fotos-pessoa"><div class="sec-title">📷 Fotos desta pessoa <span class="opc">fachada, documentos da pessoa, documentos do imóvel…</span></div><div class="sec-body">
+     <div class="cp-barra" style="align-items:center">
+       <select id="V_FTIPO" style="max-width:200px;padding:7px 6px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:14px">${TIPOS_FOTO.map(t=>`<option>${t}</option>`).join('')}</select>
+       <label class="cp-btn pri">📷 Tirar foto<input type="file" accept="image/*" capture="environment" id="V_FCAM" hidden></label>
+       <label class="cp-btn">🖼 Da galeria<input type="file" accept="image/*" multiple id="V_FGAL" hidden></label>
+     </div>
+     <div class="cp-mut">Escolha o tipo antes de tirar a foto (dá para mudar depois). As fotos ficam ligadas a esta pessoa e vão junto no envio.</div>
+     <div class="cp-grade" id="V_FOTOS"></div>
    </div></div>`);
-  $('f-voltar').onclick=()=>{ if(confirm('Sair sem salvar esta pessoa?')) fecharFicha(); };
+  $('f-voltar').onclick=async()=>{
+    const novas=_fotosSessao.length;
+    if(!confirm('Sair sem salvar esta pessoa?'+(novas?'\n\nAs '+novas+' foto(s) tiradas agora também serão descartadas.':''))) return;
+    for(const fid of _fotosSessao){ EST.fotos=EST.fotos.filter(x=>x.id!==fid); try{ await fotoDel(fid); }catch{} }
+    _fotosSessao=[]; await salvarJa(); contar(); fecharFicha(); };
+  const fotoDaFicha=(inp,origem)=>receberFotos(inp,origem,{pessoa:_fichaId+'-1', tipo:$('V_FTIPO').value, lote:$('V_LOTE').value, pino:$('V_PINO').value, naFicha:true});
+  $('V_FCAM').onchange=e=>fotoDaFicha(e.target,'camera');
+  $('V_FGAL').onchange=e=>fotoDaFicha(e.target,'galeria');
   $('V_GPS').onclick=async()=>{ const b=$('V_GPS'); b.disabled=true; b.textContent='📍 Buscando…';
     try{ _localFicha=await posicao(); mostrarLocalFicha(); }catch(e){ toast(e.message,'err'); }
     finally{ b.disabled=false; b.textContent='📍 Marcar onde estou'; } };
@@ -642,9 +703,27 @@ function porCampos(raw){
   return est;
 }
 
+/* 15/11/2026: a ficha já nasce com o id, para as fotos tiradas DENTRO do cadastro ficarem ligadas a ela */
+let _fichaId=null, _fotosSessao=[];
+async function renderFotosFicha(){
+  const el=$('V_FOTOS'); if(!el) return;
+  const minhas=EST.fotos.filter(f=>String(f.pessoa||'').startsWith(_fichaId+'-'));
+  if(!minhas.length){ el.innerHTML='<div class="cp-mut" style="grid-column:1/-1">Nenhuma foto ainda.</div>'; return; }
+  el.innerHTML=minhas.map(f=>`<div class="cp-foto" data-id="${f.id}"><img alt=""><div class="cx">
+     <select data-k="tipo">${(TIPOS_FOTO.includes(f.tipo)?TIPOS_FOTO:TIPOS_FOTO.concat([f.tipo])).map(t=>`<option${t===f.tipo?' selected':''}>${t}</option>`).join('')}</select>
+     <input data-k="legenda" placeholder="legenda (opcional)" value="${esc(f.legenda)}">
+     <div class="cp-barra" style="justify-content:flex-end"><button type="button" class="cp-btn perigo" data-del>🗑</button></div></div></div>`).join('');
+  el.querySelectorAll('.cp-foto').forEach(async card=>{
+    const id=card.dataset.id, f=EST.fotos.find(x=>x.id===id);
+    card.querySelector('img').src=await urlFoto(id);
+    card.querySelectorAll('[data-k]').forEach(inp=>inp.addEventListener('change',()=>{ f[inp.dataset.k]=inp.value; salvarRascunho(); }));
+    card.querySelector('[data-del]').onclick=async()=>{ if(!confirm('Apagar esta foto?')) return;
+      EST.fotos=EST.fotos.filter(x=>x.id!==id); _fotosSessao=_fotosSessao.filter(x=>x!==id); await fotoDel(id); await salvarJa(); contar(); renderFotosFicha(); };
+  });
+}
 function abrirFicha(id,pre){
   if(_modo) sairModo();
-  _fichaEditando=id;
+  _fichaEditando=id; _fichaId=id||novoId('P'); _fotosSessao=[];
   const f=id?EST.fichas.find(x=>x.id===id):null;
   porCampos(f?f.raw:null);
   _nacionEditada=!!(f && f.raw && f.raw.v && f.raw.v.NACION);
@@ -656,6 +735,7 @@ function abrirFicha(id,pre){
   $('f-pino').hidden=!pinosTodos().length;
   _localFicha=f?f.local||null:(pre.pino?localDoPino(pre.pino):null); mostrarLocalFicha();
   $('f-titulo').textContent=f?'Editar: '+((f.pessoas[0]||{}).NOME||''):'Nova pessoa'+(pre.pino?' — ◉ '+rotuloPino(pre.pino):pre.lote?' — '+rotuloLote(pre.lote):'');
+  $('V_FTIPO').value='fachada'; renderFotosFicha();
   $('campo').hidden=true; $('form').hidden=false; window.scrollTo({top:0});
 }
 function fecharFicha(){ $('form').hidden=true; $('campo').hidden=false; _fichaEditando=null; abrirAba('pessoas'); window.scrollTo({top:0}); }
@@ -665,7 +745,8 @@ function salvarFicha(){
   const pessoas=montarPessoas().filter(p=>p.NOME);
   if(!pessoas.length){ toast('Informe o nome.','err'); return; }
   let f=_fichaEditando?EST.fichas.find(x=>x.id===_fichaEditando):null;
-  if(!f){ f={id:novoId('P'), criado_em:agoraISO()}; EST.fichas.push(f); }
+  if(!f){ f={id:_fichaId||novoId('P'), criado_em:agoraISO()}; EST.fichas.push(f); }
+  _fotosSessao=[];
   const antigos=(f.pessoas||[]).map(p=>p._id);
   pessoas.forEach((p,i)=>{ p._id=f.id+'-'+(i+1); });
   f.raw=lerCampos(); f.tipo=f.raw.tipo; f.pessoas=pessoas;
@@ -734,11 +815,12 @@ async function receberFotos(input,origem,pre={}){
       EST.fotos.push({id, nome:id+'.jpg', tipo:pre.tipo||(origem==='camera'?'fachada':'outro'), pessoa:pre.pessoa||'', lote:pre.lote||'', pino:pre.pino||'', legenda:'',
         lat:pos?pos.lat:null, lon:pos?pos.lon:null, prec:pos?pos.prec:null,
         em:origem==='camera'?agoraISO():new Date(file.lastModified||Date.now()).toISOString(), origem, w, h, bytes:blob.size, original:file.name||''});
+      if(pre.naFicha) _fotosSessao.push(id);
       n++;
     }catch(e){ toast((file.name||'foto')+': '+e.message,'err'); }
   }
   await salvarJa(); contar();
-  if(n){ toast(n+' foto(s) guardada(s) no celular.','ok'); abrirAba('fotos'); }
+  if(n){ toast(n+' foto(s) guardada(s) no celular.','ok'); if(pre.naFicha) renderFotosFicha(); else abrirAba('fotos'); }
 }
 const _urls=new Map();
 async function urlFoto(id){ if(_urls.has(id)) return _urls.get(id); const o=await fotoGet(id); if(!o) return ''; const u=URL.createObjectURL(o.blob); _urls.set(id,u); return u; }
@@ -748,7 +830,7 @@ async function renderFotos(){
   const pess=todasPessoas();
   const optP=sel=>'<option value="">— pessoa —</option>'+pess.map(o=>`<option value="${esc(o.p._id)}"${o.p._id===sel?' selected':''}>${esc(o.p.NOME)}${o.i>0?' (2ª)':''}</option>`).join('');
   const pinos=pinosTodos();
-  const optT=sel=>TIPOS_FOTO.map(t=>`<option${t===sel?' selected':''}>${t}</option>`).join('');
+  const optT=sel=>(TIPOS_FOTO.includes(sel)||!sel?TIPOS_FOTO:TIPOS_FOTO.concat([sel])).map(t=>`<option${t===sel?' selected':''}>${t}</option>`).join('');
   el.innerHTML=EST.fotos.map(f=>`<div class="cp-foto" data-id="${f.id}"><img alt="">
     <div class="cx"><select data-k="tipo">${optT(f.tipo)}</select><select data-k="pessoa">${optP(f.pessoa)}</select>
     <select data-k="lote">${opcoesLotes(f.lote).replace('— nenhum —','— lote —')}</select>
